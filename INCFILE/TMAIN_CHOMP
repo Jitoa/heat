@@ -1,0 +1,198 @@
+C====================================================================   
+C     MAIN LOCAL & GLOBAL DESCRIPTION (TEMPERATURE FIELD)               
+C     4TH-ORDER CENTRAL SCHEME (X,Z DIR.) FOR CONVECTIVE TERM           
+C     2ND-ORDER CENTRAL SCHEME (Y DIR.CONSISTENT) FOR CONVECTIVE TERM   
+C     4TH-ORDER CENTRAL SCHEME (X,Z DIR.) FOR VISCOUS TERM              
+C     2ND-ORDER CENTRAL SCHEME FOR THE OTHER TERMS                      
+C     PROGRAMED BY H.ABE                                                
+C     2000.07.02                                                        
+C     REVISED ON 2001.03.04  BY H.ABE (QA-VT)                           
+C     REVISED BY H.ABE (2000.10.26) => TRI,QUAD,CON_AVE                 
+C     REVISED BY H.ABE (2000.09.24) => EXTENDED TO PARALLEL VERSION     
+C=======================================================================
+C                                                                       
+C---  LOCAL VARIABLES  -------------------------------------------------
+C                                                                       
+      DIMENSION T1(-3:IG+3,-2:JG+2,-3:KG+3)                             
+      DIMENSION T2(-3:IG+3,-2:JG+2,-3:KG+3)                             
+      DIMENSION FFS1(0:IG,0:JG,0:KG),FFS2(0:IG,0:JG,0:KG)               
+C                                                                       
+      COMMON /OLDCNT/ CNS1_OLD(0:IG,0:JG,0:KG),CNS2_OLD(0:IG,0:JG,0:KG) 
+      COMMON /TDMAT/ AAT(LY),BBT1(LY),BBT2(LY),CCT(LY)                  
+C                                                                       
+      DIMENSION EAT1(-2:JG+2)                                           
+      DIMENSION EAT2(-2:JG+2)                                           
+C                                                                       
+      DIMENSION EA_U(-2:JG+2)                                           
+      DIMENSION EA_V(-2:JG+2),EA_W(-2:JG+2),EA_P(-2:JG+2)               
+      DIMENSION TA_U(JG),TA_V(JG),TA_W(JG),TA_P(JG),                    
+     &          U_RMS(JG),V_RMS(JG),W_RMS(JG),P_RMS(JG)                 
+C                                                                       
+      DIMENSION TAT1(JG),TRMS1(JG)                                      
+      DIMENSION FLXUT1(JG),FLXVT1(JG),FLXWT1(JG)                        
+      DIMENSION ATHFV1(JG),ATOTAL1(JG)                                  
+      DIMENSION TAT2(JG),TRMS2(JG)                                      
+      DIMENSION FLXUT2(JG),FLXVT2(JG),FLXWT2(JG)                        
+      DIMENSION ATHFV2(JG),ATOTAL2(JG)                                  
+C                                                                       
+      DIMENSION PRO1TV(JG),DIS1TV(JG),                                  
+     &          TDF1TV(JG),RMD1TV(JG)                                   
+      DIMENSION PRO2TV(JG),DIS2TV(JG),                                  
+     &          TDF2TV(JG),RMD2TV(JG)                                   
+      DIMENSION PRO1UT(JG),DIS1UT(JG),TPG1UT(JG),                       
+     &          TDF1UT(JG),RMD1UT(JG),PTG1UT(JG),PDF1UT(JG)             
+      DIMENSION PRO2UT(JG),DIS2UT(JG),TPG2UT(JG),                       
+     &          TDF2UT(JG),RMD2UT(JG),PTG2UT(JG),PDF2UT(JG)             
+      DIMENSION PRO1VT(JG),DIS1VT(JG),TPG1VT(JG),                       
+     &          TDF1VT(JG),RMD1VT(JG),PTG1VT(JG),PDF1VT(JG)             
+      DIMENSION PRO2VT(JG),DIS2VT(JG),TPG2VT(JG),                       
+     &          TDF2VT(JG),RMD2VT(JG),PTG2VT(JG),PDF2VT(JG)             
+      DIMENSION PRO1WT(JG),DIS1WT(JG),TPG1WT(JG),                       
+     &          TDF1WT(JG),RMD1WT(JG),PTG1WT(JG),PDF1WT(JG)             
+      DIMENSION PRO2WT(JG),DIS2WT(JG),TPG2WT(JG),                       
+     &          TDF2WT(JG),RMD2WT(JG),PTG2WT(JG),PDF2WT(JG)             
+C                                                                       
+      DIMENSION ATSTRM(IG,JG,4),ATSPAN(KG,JG,4)                         
+      DIMENSION TSKEW(JG,2),TFLAT(JG,2)                                 
+      DIMENSION ATPC1T(IG,JG,2),ATPC3T(KG,JG,2)                         
+C                                                                       
+      DIMENSION TSKEWVT(JG,2),TFLATVT(JG,2)                             
+C                                                                       
+      DIMENSION AT1TRI(JG,10),AT1QUAD(JG,19),AQAVT1(JG,4)               
+      DIMENSION AT2TRI(JG,10),AT2QUAD(JG,19),AQAVT2(JG,4)               
+C                                                                       
+      DIMENSION YPLS1(JG)                                               
+      DIMENSION YPLS2(JG)                                               
+C                                                                       
+      COMMON /SCNM/ NCALC                                               
+      COMMON /SCTM/ CALTIM                                              
+      COMMON /SNUM/ NSTCS                                               
+      COMMON /STIM/ STCSTM                                              
+C                                                                       
+      COMMON /FD1C/ CEN1_F(0:JG,2),CEN1_M(0:JG,2),CEN1_B(0:JG,2)        
+      COMMON /FD2C/ CEN2_F(0:JG,2),CEN2_M(0:JG,2),CEN2_B(0:JG,2)        
+C                                                                       
+      COMMON /RVTI/ PDT                                                 
+C     COMMON /RVRE/ PRE                                                 
+      COMMON /RVXZ/ PXZ                                                 
+      COMMON /RVTL/ PTTL                                                
+C                                                                       
+      DIMENSION ANQAVT(JG,4,2)                                          
+C                                                                       
+C---  GLOBAL  VARIABLES  -----------------------------------------------
+C                                                                       
+      COMMON /TEM1/ T1G(-3:IG+3,-2:JG+2,-3:KG+3)                        
+      COMMON /TEM2/ T2G(-3:IG+3,-2:JG+2,-3:KG+3)                        
+      COMMON /OLDS/ FFS1G(0:IG,0:JG,0:KG),FFS2G(0:IG,0:JG,0:KG)         
+      COMMON /ETM1/ EAT1G(-2:JG+2)                                      
+      COMMON /ETM2/ EAT2G(-2:JG+2)                                      
+C                                                                       
+      COMMON /EAVU/ EAGU(-2:JG+2)                                       
+      COMMON /EAVE/ EAGV(-2:JG+2),EAGW(-2:JG+2),EAGP(-2:JG+2)           
+      COMMON /TAVE/ TAGU(JG),TAGV(JG),TAGW(JG),TAGP(JG),                
+     &              UGRMS(JG),VGRMS(JG),WGRMS(JG),PGRMS(JG)             
+C                                                                       
+      COMMON /TTM1/ TAT1G(JG),TRMS1G(JG),                               
+     &              FLXUT1G(JG),FLXVT1G(JG),FLXWT1G(JG)                 
+      COMMON /TTM2/ TAT2G(JG),TRMS2G(JG),                               
+     &              FLXUT2G(JG),FLXVT2G(JG),FLXWT2G(JG)                 
+      COMMON /THF1/ ATHFV1G(JG),ATOTAL1G(JG)                            
+      COMMON /THF2/ ATHFV2G(JG),ATOTAL2G(JG)                            
+C                                                                       
+      COMMON /KON1/ PRO1TG(JG),DIS1TG(JG),                              
+     &              TDF1TG(JG),RMD1TG(JG),                              
+     &              PRO1UG(JG),DIS1UG(JG),TPG1UG(JG),                   
+     &              TDF1UG(JG),RMD1UG(JG),PTG1UG(JG),PDF1UG(JG),        
+     &              PRO1VG(JG),DIS1VG(JG),TPG1VG(JG),                   
+     &              TDF1VG(JG),RMD1VG(JG),PTG1VG(JG),PDF1VG(JG),        
+     &              PRO1WG(JG),DIS1WG(JG),TPG1WG(JG),                   
+     &              TDF1WG(JG),RMD1WG(JG),PTG1WG(JG),PDF1WG(JG)         
+      COMMON /KON2/ PRO2TG(JG),DIS2TG(JG),                              
+     &              TDF2TG(JG),RMD2TG(JG),                              
+     &              PRO2UG(JG),DIS2UG(JG),TPG2UG(JG),                   
+     &              TDF2UG(JG),RMD2UG(JG),PTG2UG(JG),PDF2UG(JG),        
+     &              PRO2VG(JG),DIS2VG(JG),TPG2VG(JG),                   
+     &              TDF2VG(JG),RMD2VG(JG),PTG2VG(JG),PDF2VG(JG),        
+     &              PRO2WG(JG),DIS2WG(JG),TPG2WG(JG),                   
+     &              TDF2WG(JG),RMD2WG(JG),PTG2WG(JG),PDF2WG(JG)         
+C                                                                       
+      COMMON /TSPE/ ATSTRMG(IG,JG,4),ATSPANG(KG,JG,4)                   
+      COMMON /TFAC/ TSKEWG(JG,2),TFLATG(JG,2)                           
+      COMMON /TCOR/ ATPC1TG(IG,JG,2),ATPC3TG(KG,JG,2)                   
+C                                                                       
+      COMMON /TSFVT/ TSKEWVTG(JG,2),TFLATVTG(JG,2)                      
+C                                                                       
+      COMMON /T1HOA/ AT1TRIG(JG,10),AT1QUADG(JG,19),AQAVT1G(JG,4)       
+      COMMON /T2HOA/ AT2TRIG(JG,10),AT2QUADG(JG,19),AQAVT2G(JG,4)       
+C                                                                       
+      COMMON /NQAVT/ ANQAVTG(JG,4,2)                                    
+C                                                                       
+      COMMON /YPC1/ YPLS1G(JG)                                          
+      COMMON /YPC2/ YPLS2G(JG)                                          
+C                                                                       
+C---  COMBINATION  -----------------------------------------------------
+C                                                                       
+      EQUIVALENCE (T1G,T1),(T2G,T2)                                     
+      EQUIVALENCE (EAT1G,EAT1),(EAT2G,EAT2)                             
+      EQUIVALENCE (FFS1G,FFS1),(FFS2G,FFS2)                             
+C                                                                       
+      EQUIVALENCE (EAGU,EA_U),(EAGV,EA_V),                              
+     &            (EAGW,EA_W),(EAGP,EA_P)                               
+      EQUIVALENCE (TAGU,TA_U),(TAGV,TA_V),                              
+     &            (TAGW,TA_W),(TAGP,TA_P)                               
+      EQUIVALENCE (UGRMS,U_RMS),(VGRMS,V_RMS),                          
+     &            (WGRMS,W_RMS),(PGRMS,P_RMS)                           
+C                                                                       
+      EQUIVALENCE (TAT1G,TAT1),(TRMS1G,TRMS1),                          
+     &            (FLXUT1G,FLXUT1),(FLXVT1G,FLXVT1),(FLXWT1G,FLXWT1),   
+     &            (ATHFV1G,ATHFV1),(ATOTAL1G,ATOTAL1)                   
+      EQUIVALENCE (TAT2G,TAT2),(TRMS2G,TRMS2),                          
+     &            (FLXUT2G,FLXUT2),(FLXVT2G,FLXVT2),(FLXWT2G,FLXWT2),   
+     &            (ATHFV2G,ATHFV2),(ATOTAL2G,ATOTAL2)                   
+C                                                                       
+      EQUIVALENCE (PRO1TG,PRO1TV),(DIS1TG,DIS1TV),                      
+     &            (TDF1TG,TDF1TV),(RMD1TG,RMD1TV)                       
+      EQUIVALENCE (PRO2TG,PRO2TV),(DIS2TG,DIS2TV),                      
+     &            (TDF2TG,TDF2TV),(RMD2TG,RMD2TV)                       
+      EQUIVALENCE (PRO1UG,PRO1UT),(DIS1UG,DIS1UT),                      
+     &            (TPG1UG,TPG1UT),(TDF1UG,TDF1UT),                      
+     &            (RMD1UG,RMD1UT),(PTG1UG,PTG1UT),                      
+     &            (PDF1UG,PDF1UT)                                       
+      EQUIVALENCE (PRO2UG,PRO2UT),(DIS2UG,DIS2UT),                      
+     &            (TPG2UG,TPG2UT),(TDF2UG,TDF2UT),                      
+     &            (RMD2UG,RMD2UT),(PTG2UG,PTG2UT),                      
+     &            (PDF2UG,PDF2UT)                                       
+      EQUIVALENCE (PRO1VG,PRO1VT),(DIS1VG,DIS1VT),                      
+     &            (TPG1VG,TPG1VT),(TDF1VG,TDF1VT),                      
+     &            (RMD1VG,RMD1VT),(PTG1VG,PTG1VT),                      
+     &            (PDF1VG,PDF1VT)                                       
+      EQUIVALENCE (PRO2VG,PRO2VT),(DIS2VG,DIS2VT),                      
+     &            (TPG2VG,TPG2VT),(TDF2VG,TDF2VT),                      
+     &            (RMD2VG,RMD2VT),(PTG2VG,PTG2VT),                      
+     &            (PDF2VG,PDF2VT)                                       
+      EQUIVALENCE (PRO1WG,PRO1WT),(DIS1WG,DIS1WT),                      
+     &            (TPG1WG,TPG1WT),(TDF1WG,TDF1WT),                      
+     &            (RMD1WG,RMD1WT),(PTG1WG,PTG1WT),                      
+     &            (PDF1WG,PDF1WT)                                       
+      EQUIVALENCE (PRO2WG,PRO2WT),(DIS2WG,DIS2WT),                      
+     &            (TPG2WG,TPG2WT),(TDF2WG,TDF2WT),                      
+     &            (RMD2WG,RMD2WT),(PTG2WG,PTG2WT),                      
+     &            (PDF2WG,PDF2WT)                                       
+C                                                                       
+      EQUIVALENCE (ATSTRMG,ATSTRM),(ATSPANG,ATSPAN)                     
+      EQUIVALENCE (TSKEWG,TSKEW),(TFLATG,TFLAT)                         
+      EQUIVALENCE (ATPC1TG,ATPC1T),(ATPC3TG,ATPC3T)                     
+C                                                                       
+      EQUIVALENCE (TSKEWVTG,TSKEWVT),(TFLATVTG,TFLATVT)                 
+C                                                                       
+      EQUIVALENCE (AT1TRIG,AT1TRI),(AT1QUADG,AT1QUAD),                  
+     &            (AQAVT1G,AQAVT1)                                      
+      EQUIVALENCE (AT2TRIG,AT2TRI),(AT2QUADG,AT2QUAD),                  
+     &            (AQAVT2G,AQAVT2)                                      
+C                                                                       
+      EQUIVALENCE (ANQAVTG,ANQAVT)                                      
+C                                                                       
+      EQUIVALENCE (YPLS1G,YPLS1),(YPLS2G,YPLS2)                         
+C                                                                       
+C=======================================================================
+C                                                                       

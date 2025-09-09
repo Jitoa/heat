@@ -1,0 +1,1715 @@
+C====================================================================   
+C     CALC. 2D TWO-POINT CORR. (VELOCITY & TEMPERATURE FIELD)                                     
+      SUBROUTINE CORR2D                                              
+C     PROGRAMED ON 2004.08.08 BY T.TSUKAHARA                    
+C     REVISED ON 2004.09.24                  
+C     REVISED ON 2006.01.25 FOR SX-7                  
+C====================================================================   
+C                                                                       
+      INCLUDE './INCFILE/INCINIT96'
+C                                                                       
+      COMMON /JAVE/ JA,JB,JC,JD,JE,JF,JH,JI,JJ,JK,JL                    
+C                                                                       
+C----LOCAL VARIABLES-------------------------------------------         
+C                                                                       
+      DIMENSION R1A2(JG,2),R2A2(JG,2),R3A2(JG,2),R4A2(JG,2)
+     &         ,R1B2(JG,2),R2B2(JG,2),R3B2(JG,2),R4B2(JG,2)
+     &         ,R1C2(JG,2),R2C2(JG,2),R3C2(JG,2),R4C2(JG,2)
+     &         ,R1D2(JG,2),R2D2(JG,2),R3D2(JG,2),R4D2(JG,2)
+     &         ,R1E2(JG,2),R2E2(JG,2),R3E2(JG,2),R4E2(JG,2)
+     &         ,R1F2(JG,2),R2F2(JG,2),R3F2(JG,2),R4F2(JG,2)
+     &         ,R1H2(JG,2),R2H2(JG,2),R3H2(JG,2),R4H2(JG,2)
+     &         ,R1I2(JG,2),R2I2(JG,2),R3I2(JG,2),R4I2(JG,2)
+     &         ,R1J2(JG,2),R2J2(JG,2),R3J2(JG,2),R4J2(JG,2)
+     &         ,R1K2(JG,2),R2K2(JG,2),R3K2(JG,2),R4K2(JG,2)
+     &         ,R1L2(JG,2),R2L2(JG,2),R3L2(JG,2),R4L2(JG,2)
+C
+      DIMENSION R1A4(IG,JG),R2A4(IG,JG),R3A4(IG,JG),R4A4(IG,JG) 
+     &         ,R1B4(IG,JG),R2B4(IG,JG),R3B4(IG,JG),R4B4(IG,JG) 
+     &         ,R1C4(IG,JG),R2C4(IG,JG),R3C4(IG,JG),R4C4(IG,JG) 
+     &         ,R1D4(IG,JG),R2D4(IG,JG),R3D4(IG,JG),R4D4(IG,JG) 
+     &         ,R1E4(IG,JG),R2E4(IG,JG),R3E4(IG,JG),R4E4(IG,JG) 
+     &         ,R1F4(IG,JG),R2F4(IG,JG),R3F4(IG,JG),R4F4(IG,JG) 
+     &         ,R1H4(IG,JG),R2H4(IG,JG),R3H4(IG,JG),R4H4(IG,JG) 
+     &         ,R1I4(IG,JG),R2I4(IG,JG),R3I4(IG,JG),R4I4(IG,JG) 
+     &         ,R1J4(IG,JG),R2J4(IG,JG),R3J4(IG,JG),R4J4(IG,JG) 
+     &         ,R1K4(IG,JG),R2K4(IG,JG),R3K4(IG,JG),R4K4(IG,JG) 
+     &         ,R1L4(IG,JG),R2L4(IG,JG),R3L4(IG,JG),R4L4(IG,JG) 
+C                                                                       
+C----GLOBAL VARIABLES------------------------------------------         
+C                                                                       
+      COMMON /VELO/ U(-4:IG+4,-2:JG+2,-4:KG+4,3)                       
+      COMMON /SCAL/ P(-3:IG+3,-2:JG+2,-3:KG+3)                         
+      COMMON /TEMP/ UT(-4:IG+4,-2:JG+2,-4:KG+4,3)                      
+      COMMON /MEAN/ AU(-1:JG+2),AV(-1:JG+2)                           
+     &             ,AW(-1:JG+2),AP(-1:JG+2)                           
+      COMMON /COR2/ ATPC2(JG,JG,4),ATPC4(IG,JG,JG,4)
+C                                                                       
+C=================================================================      
+C-------------------------------------- U',V',W'                        
+!$OMP PARALLEL DO PRIVATE(I,K)                                          
+      DO 10 J=-1,JG+2                                                   
+      DO 10 K=-1,KG+2                                                   
+      DO 10 I=-1,IG+2                                                  
+        UT(I,J,K,1)=U(I,J,K,1)-AU(J)                            
+        UT(I,J,K,2)=U(I,J,K,2)-AV(J)                            
+        UT(I,J,K,3)=U(I,J,K,3)-AW(J)                            
+   10 CONTINUE                                                          
+C                                                                       
+C=================================== ZERO-CLEAR
+C----------------------------------- XY-PLANE
+C---- SPREAD REGION => SPREAD DO (2004.08.31, T.TSUKAHARA)
+!XOCL SPREAD DO /ISC                                                    
+      DO 100 J2=JA,JA                                                   
+       IF (J2.EQ.JA) THEN                                               
+        DO 120 J=1,JG                                                   
+        DO 120 I=1,IG                                                   
+          R1A4(I,J)=0.0D0                                             
+          R2A4(I,J)=0.0D0                                             
+          R3A4(I,J)=0.0D0                                             
+          R4A4(I,J)=0.0D0                                             
+  120   CONTINUE                                                        
+       ENDIF                                                            
+  100 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 101 J2=JB,JB                                                   
+       IF (J2.EQ.JB) THEN                                               
+        DO 121 J=1,JG                                                   
+        DO 121 I=1,IG                                                   
+          R1B4(I,J)=0.0D0                                             
+          R2B4(I,J)=0.0D0                                             
+          R3B4(I,J)=0.0D0                                             
+          R4B4(I,J)=0.0D0                                             
+  121   CONTINUE                                                        
+       ENDIF                                                            
+  101 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 102 J2=JC,JC                                                   
+       IF (J2.EQ.JC) THEN                                               
+        DO 122 J=1,JG                                                   
+        DO 122 I=1,IG                                                   
+          R1C4(I,J)=0.0D0                                             
+          R2C4(I,J)=0.0D0                                             
+          R3C4(I,J)=0.0D0                                             
+          R4C4(I,J)=0.0D0                                             
+  122   CONTINUE                                                        
+       ENDIF                                                            
+  102 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 103 J2=JD,JD                                                   
+       IF (J2.EQ.JD) THEN                                               
+        DO 123 J=1,JG                                                   
+        DO 123 I=1,IG                                                   
+          R1D4(I,J)=0.0D0                                             
+          R2D4(I,J)=0.0D0                                             
+          R3D4(I,J)=0.0D0                                             
+          R4D4(I,J)=0.0D0                                             
+  123   CONTINUE                                                        
+       ENDIF                                                            
+  103 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 104 J2=JE,JE                                                   
+       IF (J2.EQ.JE) THEN                                               
+        DO 124 J=1,JG                                                   
+        DO 124 I=1,IG                                                   
+          R1E4(I,J)=0.0D0                                             
+          R2E4(I,J)=0.0D0                                             
+          R3E4(I,J)=0.0D0                                             
+          R4E4(I,J)=0.0D0                                             
+  124   CONTINUE                                                        
+       ENDIF                                                            
+  104 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 105 J2=JF,JF                                                   
+       IF (J2.EQ.JF) THEN                                               
+        DO 125 J=1,JG                                                   
+        DO 125 I=1,IG                                                   
+          R1F4(I,J)=0.0D0                                             
+          R2F4(I,J)=0.0D0                                             
+          R3F4(I,J)=0.0D0                                             
+          R4F4(I,J)=0.0D0                                             
+  125   CONTINUE                                                        
+       ENDIF                                                            
+  105 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 106 J2=JH,JH                                                   
+       IF (J2.EQ.JH) THEN                                               
+        DO 126 J=1,JG                                                   
+        DO 126 I=1,IG                                                   
+          R1H4(I,J)=0.0D0                                             
+          R2H4(I,J)=0.0D0                                             
+          R3H4(I,J)=0.0D0                                             
+          R4H4(I,J)=0.0D0                                             
+  126   CONTINUE                                                        
+       ENDIF                                                            
+  106 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 107 J2=JI,JI                                                   
+       IF (J2.EQ.JI) THEN                                               
+        DO 127 J=1,JG                                                   
+        DO 127 I=1,IG                                                   
+          R1I4(I,J)=0.0D0                                             
+          R2I4(I,J)=0.0D0                                             
+          R3I4(I,J)=0.0D0                                             
+          R4I4(I,J)=0.0D0                                             
+  127   CONTINUE                                                        
+       ENDIF                                                            
+  107 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 108 J2=JJ,JJ                                                   
+       IF (J2.EQ.JJ) THEN                                               
+        DO 128 J=1,JG                                                   
+        DO 128 I=1,IG                                                   
+          R1J4(I,J)=0.0D0                                             
+          R2J4(I,J)=0.0D0                                             
+          R3J4(I,J)=0.0D0                                             
+          R4J4(I,J)=0.0D0                                             
+  128   CONTINUE                                                        
+       ENDIF                                                            
+  108 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 109 J2=JK,JK                                                   
+       IF (J2.EQ.JK) THEN                                               
+        DO 129 J=1,JG                                                   
+        DO 129 I=1,IG                                                   
+          R1K4(I,J)=0.0D0                                             
+          R2K4(I,J)=0.0D0                                             
+          R3K4(I,J)=0.0D0                                             
+          R4K4(I,J)=0.0D0                                             
+  129   CONTINUE                                                        
+       ENDIF                                                            
+  109 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 110 J2=JL,JL                                                   
+       IF (J2.EQ.JL) THEN                                               
+        DO 130 J=1,JG                                                   
+        DO 130 I=1,IG                                                   
+          R1L4(I,J)=0.0D0                                             
+          R2L4(I,J)=0.0D0                                             
+          R3L4(I,J)=0.0D0                                             
+          R4L4(I,J)=0.0D0                                             
+  130   CONTINUE                                                        
+       ENDIF                                                            
+  110 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+C----------------------------------- WALL-NORMAL
+C---- SPREAD REGION => SPREAD DO (2004.08.31, T.TSUKAHARA)
+!XOCL SPREAD DO /ISC                                                    
+      DO 200 J2=JA,JA                                                   
+       IF (J2.EQ.JA) THEN                                               
+        DO 10 J=1,JG                                                    
+          R1A2(J,1)=0.0D0                                               
+          R1A2(J,2)=0.0D0                                               
+          R2A2(J,1)=0.0D0                                               
+          R2A2(J,2)=0.0D0                                               
+          R3A2(J,1)=0.0D0                                               
+          R3A2(J,2)=0.0D0                                               
+          R4A2(J,1)=0.0D0                                               
+          R4A2(J,2)=0.0D0                                               
+   10   CONTINUE                                                        
+       ENDIF                                                            
+  200 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 201 J2=JB,JB                                                   
+       IF (J2.EQ.JB) THEN                                               
+        DO 11 J=1,JG                                                    
+          R1B2(J,1)=0.0D0                                               
+          R1B2(J,2)=0.0D0                                               
+          R2B2(J,1)=0.0D0                                               
+          R2B2(J,2)=0.0D0                                               
+          R3B2(J,1)=0.0D0                                               
+          R3B2(J,2)=0.0D0                                               
+          R4B2(J,1)=0.0D0                                               
+          R4B2(J,2)=0.0D0                                               
+   11   CONTINUE                                                        
+       ENDIF                                                            
+  201 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 202 J2=JC,JC                                                   
+       IF (J2.EQ.JC) THEN                                               
+        DO 12 J=1,JG                                                    
+          R1C2(J,1)=0.0D0                                               
+          R1C2(J,2)=0.0D0                                               
+          R2C2(J,1)=0.0D0                                               
+          R2C2(J,2)=0.0D0                                               
+          R3C2(J,1)=0.0D0                                               
+          R3C2(J,2)=0.0D0                                               
+          R4C2(J,1)=0.0D0                                               
+          R4C2(J,2)=0.0D0                                               
+   12   CONTINUE                                                        
+       ENDIF                                                            
+  202 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 203 J2=JD,JD                                                   
+       IF (J2.EQ.JD) THEN                                               
+        DO 13 J=1,JG                                                    
+          R1D2(J,1)=0.0D0                                               
+          R1D2(J,2)=0.0D0                                               
+          R2D2(J,1)=0.0D0                                               
+          R2D2(J,2)=0.0D0                                               
+          R3D2(J,1)=0.0D0                                               
+          R3D2(J,2)=0.0D0                                               
+          R4D2(J,1)=0.0D0                                               
+          R4D2(J,2)=0.0D0                                               
+   13   CONTINUE                                                        
+       ENDIF                                                            
+  203 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 204 J2=JE,JE                                                   
+       IF (J2.EQ.JE) THEN                                               
+        DO 14 J=1,JG                                                    
+          R1E2(J,1)=0.0D0                                               
+          R1E2(J,2)=0.0D0                                               
+          R2E2(J,1)=0.0D0                                               
+          R2E2(J,2)=0.0D0                                               
+          R3E2(J,1)=0.0D0                                               
+          R3E2(J,2)=0.0D0                                               
+          R4E2(J,1)=0.0D0                                               
+          R4E2(J,2)=0.0D0                                               
+   14   CONTINUE                                                        
+       ENDIF                                                            
+  204 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 205 J2=JF,JF                                                   
+       IF (J2.EQ.JF) THEN                                               
+        DO 15 J=1,JG                                                    
+          R1F2(J,1)=0.0D0                                               
+          R1F2(J,2)=0.0D0                                               
+          R2F2(J,1)=0.0D0                                               
+          R2F2(J,2)=0.0D0                                               
+          R3F2(J,1)=0.0D0                                               
+          R3F2(J,2)=0.0D0                                               
+          R4F2(J,1)=0.0D0                                               
+          R4F2(J,2)=0.0D0                                               
+   15   CONTINUE                                                        
+       ENDIF                                                            
+  205 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 206 J2=JH,JH                                                   
+       IF (J2.EQ.JH) THEN                                               
+        DO 16 J=1,JG                                                    
+          R1H2(J,1)=0.0D0                                               
+          R1H2(J,2)=0.0D0                                               
+          R2H2(J,1)=0.0D0                                               
+          R2H2(J,2)=0.0D0                                               
+          R3H2(J,1)=0.0D0                                               
+          R3H2(J,2)=0.0D0                                               
+          R4H2(J,1)=0.0D0                                               
+          R4H2(J,2)=0.0D0                                               
+   16   CONTINUE                                                        
+       ENDIF                                                            
+  206 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 207 J2=JI,JI                                                   
+       IF (J2.EQ.JI) THEN                                               
+        DO 17 J=1,JG                                                    
+          R1I2(J,1)=0.0D0                                               
+          R1I2(J,2)=0.0D0                                               
+          R2I2(J,1)=0.0D0                                               
+          R2I2(J,2)=0.0D0                                               
+          R3I2(J,1)=0.0D0                                               
+          R3I2(J,2)=0.0D0                                               
+          R4I2(J,1)=0.0D0                                               
+          R4I2(J,2)=0.0D0                                               
+   17   CONTINUE                                                        
+       ENDIF                                                            
+  207 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 208 J2=JJ,JJ                                                   
+       IF (J2.EQ.JJ) THEN                                               
+        DO 18 J=1,JG                                                    
+          R1J2(J,1)=0.0D0                                               
+          R1J2(J,2)=0.0D0                                               
+          R2J2(J,1)=0.0D0                                               
+          R2J2(J,2)=0.0D0                                               
+          R3J2(J,1)=0.0D0                                               
+          R3J2(J,2)=0.0D0                                               
+          R4J2(J,1)=0.0D0                                               
+          R4J2(J,2)=0.0D0                                               
+   18   CONTINUE                                                        
+       ENDIF                                                            
+  208 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 209 J2=JK,JK                                                   
+       IF (J2.EQ.JK) THEN                                               
+        DO 19 J=1,JG                                                    
+          R1K2(J,1)=0.0D0                                               
+          R1K2(J,2)=0.0D0                                               
+          R2K2(J,1)=0.0D0                                               
+          R2K2(J,2)=0.0D0                                               
+          R3K2(J,1)=0.0D0                                               
+          R3K2(J,2)=0.0D0                                               
+          R4K2(J,1)=0.0D0                                               
+          R4K2(J,2)=0.0D0                                               
+   19   CONTINUE                                                        
+       ENDIF                                                            
+  209 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+!XOCL SPREAD DO /ISC                                                    
+      DO 210 J2=JL,JL                                                   
+       IF (J2.EQ.JL) THEN                                               
+        DO 20 J=1,JG                                                    
+          R1L2(J,1)=0.0D0                                               
+          R1L2(J,2)=0.0D0                                               
+          R2L2(J,1)=0.0D0                                               
+          R2L2(J,2)=0.0D0                                               
+          R3L2(J,1)=0.0D0                                               
+          R3L2(J,2)=0.0D0                                               
+          R4L2(J,1)=0.0D0                                               
+          R4L2(J,2)=0.0D0                                               
+   20   CONTINUE                                                        
+       ENDIF                                                            
+  210 CONTINUE                                                          
+!XOCL END SPREAD                                                        
+C
+C----------------------------------- XY-PLANE
+C
+!XOCL SPREAD DO /ISC
+      DO 520 J2=JA,JA
+       IF (J2.EQ.JA) THEN
+        DO 450 J=1,JG
+        DO 450 K=1,KG
+        DO 450 I=1,IG
+         R1A4(I,J)=R1A4(I,J)+UL(IG/2,JA,K,1)*UL(I,J,K,1)
+         R2A4(I,J)=R2A4(I,J)+(UL(IG/2,JA,K,2)+UL(IG/2,JA-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3A4(I,J)=R3A4(I,J)+UL(IG/2,JA,K,3)*UL(I,J,K,3)
+         R4A4(I,J)=R4A4(I,J)+PL(IG/2,JA,K)*PL(I,J,K)
+  450   CONTINUE
+       ENDIF
+  520 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 521 J2=JB,JB
+       IF (J2.EQ.JB) THEN
+        DO 451 J=1,JG
+        DO 451 K=1,KG
+        DO 451 I=1,IG
+         R1B4(I,J)=R1B4(I,J)+UL(IG/2,JB,K,1)*UL(I,J,K,1)
+         R2B4(I,J)=R2B4(I,J)+(UL(IG/2,JB,K,2)+UL(IG/2,JB-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3B4(I,J)=R3B4(I,J)+UL(IG/2,JB,K,3)*UL(I,J,K,3)
+         R4B4(I,J)=R4B4(I,J)+PL(IG/2,JB,K)*PL(I,J,K)
+  451   CONTINUE
+       ENDIF
+  521 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 522 J2=JC,JC
+       IF (J2.EQ.JC) THEN
+        DO 452 J=1,JG
+        DO 452 K=1,KG
+        DO 452 I=1,IG
+         R1C4(I,J)=R1C4(I,J)+UL(IG/2,JC,K,1)*UL(I,J,K,1)
+         R2C4(I,J)=R2C4(I,J)+(UL(IG/2,JC,K,2)+UL(IG/2,JC-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3C4(I,J)=R3C4(I,J)+UL(IG/2,JC,K,3)*UL(I,J,K,3)
+         R4C4(I,J)=R4C4(I,J)+PL(IG/2,JC,K)*PL(I,J,K)
+  452   CONTINUE
+       ENDIF
+  522 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 523 J2=JD,JD
+       IF (J2.EQ.JD) THEN
+        DO 453 J=1,JG
+        DO 453 K=1,KG
+        DO 453 I=1,IG
+         R1D4(I,J)=R1D4(I,J)+UL(IG/2,JD,K,1)*UL(I,J,K,1)
+         R2D4(I,J)=R2D4(I,J)+(UL(IG/2,JD,K,2)+UL(IG/2,JD-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3D4(I,J)=R3D4(I,J)+UL(IG/2,JD,K,3)*UL(I,J,K,3)
+         R4D4(I,J)=R4D4(I,J)+PL(IG/2,JD,K)*PL(I,J,K)
+  453   CONTINUE
+       ENDIF
+  523 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 524 J2=JE,JE
+       IF (J2.EQ.JE) THEN
+        DO 454 J=1,JG
+        DO 454 K=1,KG
+        DO 454 I=1,IG
+         R1E4(I,J)=R1E4(I,J)+UL(IG/2,JE,K,1)*UL(I,J,K,1)
+         R2E4(I,J)=R2E4(I,J)+(UL(IG/2,JE,K,2)+UL(IG/2,JE-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3E4(I,J)=R3E4(I,J)+UL(IG/2,JE,K,3)*UL(I,J,K,3)
+         R4E4(I,J)=R4E4(I,J)+PL(IG/2,JE,K)*PL(I,J,K)
+  454   CONTINUE
+       ENDIF
+  524 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 525 J2=JF,JF
+       IF (J2.EQ.JF) THEN
+        DO 455 J=1,JG
+        DO 455 K=1,KG
+        DO 455 I=1,IG
+         R1F4(I,J)=R1F4(I,J)+UL(IG/2,JF,K,1)*UL(I,J,K,1)
+         R2F4(I,J)=R2F4(I,J)+(UL(IG/2,JF,K,2)+UL(IG/2,JF-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3F4(I,J)=R3F4(I,J)+UL(IG/2,JF,K,3)*UL(I,J,K,3)
+         R4F4(I,J)=R4F4(I,J)+PL(IG/2,JF,K)*PL(I,J,K)
+  455   CONTINUE
+       ENDIF
+  525 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 526 J2=JH,JH
+       IF (J2.EQ.JH) THEN
+        DO 456 J=1,JG
+        DO 456 K=1,KG
+        DO 456 I=1,IG
+         R1H4(I,J)=R1H4(I,J)+UL(IG/2,JH,K,1)*UL(I,J,K,1)
+         R2H4(I,J)=R2H4(I,J)+(UL(IG/2,JH,K,2)+UL(IG/2,JH-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3H4(I,J)=R3H4(I,J)+UL(IG/2,JH,K,3)*UL(I,J,K,3)
+         R4H4(I,J)=R4H4(I,J)+PL(IG/2,JH,K)*PL(I,J,K)
+  456   CONTINUE
+       ENDIF
+  526 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 527 J2=JI,JI
+       IF (J2.EQ.JI) THEN
+        DO 457 J=1,JG
+        DO 457 K=1,KG
+        DO 457 I=1,IG
+         R1I4(I,J)=R1I4(I,J)+UL(IG/2,JI,K,1)*UL(I,J,K,1)
+         R2I4(I,J)=R2I4(I,J)+(UL(IG/2,JI,K,2)+UL(IG/2,JI-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3I4(I,J)=R3I4(I,J)+UL(IG/2,JI,K,3)*UL(I,J,K,3)
+         R4I4(I,J)=R4I4(I,J)+PL(IG/2,JI,K)*PL(I,J,K)
+  457   CONTINUE
+       ENDIF
+  527 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 528 J2=JJ,JJ
+       IF (J2.EQ.JJ) THEN
+        DO 458 J=1,JG
+        DO 458 K=1,KG
+        DO 458 I=1,IG
+         R1J4(I,J)=R1J4(I,J)+UL(IG/2,JJ,K,1)*UL(I,J,K,1)
+         R2J4(I,J)=R2J4(I,J)+(UL(IG/2,JJ,K,2)+UL(IG/2,JJ-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3J4(I,J)=R3J4(I,J)+UL(IG/2,JJ,K,3)*UL(I,J,K,3)
+         R4J4(I,J)=R4J4(I,J)+PL(IG/2,JJ,K)*PL(I,J,K)
+  458   CONTINUE
+       ENDIF
+  528 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 529 J2=JK,JK
+       IF (J2.EQ.JK) THEN
+        DO 459 J=1,JG
+        DO 459 K=1,KG
+        DO 459 I=1,IG
+         R1K4(I,J)=R1K4(I,J)+UL(IG/2,JK,K,1)*UL(I,J,K,1)
+         R2K4(I,J)=R2K4(I,J)+(UL(IG/2,JK,K,2)+UL(IG/2,JK-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3K4(I,J)=R3K4(I,J)+UL(IG/2,JK,K,3)*UL(I,J,K,3)
+         R4K4(I,J)=R4K4(I,J)+PL(IG/2,JK,K)*PL(I,J,K)
+  459   CONTINUE
+       ENDIF
+  529 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 530 J2=JL,JL
+       IF (J2.EQ.JL) THEN
+        DO 460 J=1,JG
+        DO 460 K=1,KG
+        DO 460 I=1,IG
+         R1L4(I,J)=R1L4(I,J)+UL(IG/2,JL,K,1)*UL(I,J,K,1)
+         R2L4(I,J)=R2L4(I,J)+(UL(IG/2,JL,K,2)+UL(IG/2,JL-1,K,2))
+     &                           *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+         R3L4(I,J)=R3L4(I,J)+UL(IG/2,JL,K,3)*UL(I,J,K,3)
+         R4L4(I,J)=R4L4(I,J)+PL(IG/2,JL,K)*PL(I,J,K)
+  460   CONTINUE
+       ENDIF
+  530 CONTINUE
+!XOCL END SPREAD
+C
+C----------------------------------- WALL-NORMAL
+C
+!XOCL SPREAD DO /ISC
+      DO 540 J2=JA,JA
+       IF (J2.EQ.JA) THEN
+        DO 50 J=1,JG
+        DO 50 I=1,IG
+         R1A2(J,1)=R1A2(J,1)+UL(I,JA,K,1)*UL(I,J,K,1)
+C         R1A2(J,2)=R1A2(J,2)+UL(I,JA,K,1)**2
+         R2A2(J,1)=R2A2(J,1)+(UL(I,JA,K,2)+UL(I,JA-1,K,2))
+     &                      *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C        R2A2(J,2)=R2A2(J,2)+((UL(I,JA,K,2)+UL(I,JA-1,K,2))*0.5D0)**2
+         R3A2(J,1)=R3A2(J,1)+UL(I,JA,K,3)*UL(I,J,K,3)
+C        R3A2(J,2)=R3A2(J,2)+UL(I,JA,K,3)**2
+         R4A2(J,1)=R4A2(J,1)+PL(I,JA,K)*PL(I,J,K)
+C        R4A2(J,2)=R4A2(J,2)+PL(I,JA,K)**2
+   50   CONTINUE
+       ENDIF
+  540 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 541 J2=JB,JB
+       IF (J2.EQ.JB) THEN
+        DO 51 J=1,JG
+        DO 51 K=1,KG
+        DO 51 I=1,IG
+         R1B2(J,1)=R1B2(J,1)+UL(I,JB,K,1)*UL(I,J,K,1)
+C         R1B2(J,2)=R1B2(J,2)+UL(I,JB,K,1)**2
+         R2B2(J,1)=R2B2(J,1)+(UL(I,JB,K,2)+UL(I,JB-1,K,2))
+     &                      *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C         R2B2(J,2)=R2B2(J,2)+((UL(I,JB,K,2)+UL(I,JB-1,K,2))*0.5D0)**2
+         R3B2(J,1)=R3B2(J,1)+UL(I,JB,K,3)*UL(I,J,K,3)
+C         R3B2(J,2)=R3B2(J,2)+UL(I,JB,K,3)**2
+         R4B2(J,1)=R4B2(J,1)+PL(I,JB,K)*PL(I,J,K)
+C         R4B2(J,2)=R4B2(J,2)+PL(I,JB,K)**2
+   51   CONTINUE
+      ENDIF
+  541 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 542 J2=JC,JC
+       IF (J2.EQ.JC) THEN
+        DO 52 J=1,JG
+        DO 52 K=1,KG
+        DO 52 I=1,IG
+        R1C2(J,1)=R1C2(J,1)+UL(I,JC,K,1)*UL(I,J,K,1)
+C        R1C2(J,2)=R1C2(J,2)+UL(I,JC,K,1)**2
+        R2C2(J,1)=R2C2(J,1)+(UL(I,JC,K,2)+UL(I,JC-1,K,2))
+     &                      *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C        R2C2(J,2)=R2C2(J,2)+((UL(I,JC,K,2)+UL(I,JC-1,K,2))*0.5D0)**2
+        R3C2(J,1)=R3C2(J,1)+UL(I,JC,K,3)*UL(I,J,K,3)
+C        R3C2(J,2)=R3C2(J,2)+UL(I,JC,K,3)**2
+        R4C2(J,1)=R4C2(J,1)+PL(I,JC,K)*PL(I,J,K)
+C        R4C2(J,2)=R4C2(J,2)+PL(I,JC,K)**2
+  52   CONTINUE
+      ENDIF
+  542 CONTINUE
+!XOCL END SPREAD
+
+!XOCL SPREAD DO /ISC
+      DO 543 J2=JD,JD
+       IF (J2.EQ.JD) THEN
+        DO 53 J=1,JG
+        DO 53 K=1,KG
+        DO 53 I=1,IG
+         R1D2(J,1)=R1D2(J,1)+UL(I,JD,K,1)*UL(I,J,K,1)
+C         R1D2(J,2)=R1D2(J,2)+UL(I,JD,K,1)**2
+         R2D2(J,1)=R2D2(J,1)+(UL(I,JD,K,2)+UL(I,JD-1,K,2))
+     &                      *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C         R2D2(J,2)=R2D2(J,2)+((UL(I,JD,K,2)+UL(I,JD-1,K,2))*0.5D0)**2
+         R3D2(J,1)=R3D2(J,1)+UL(I,JD,K,3)*UL(I,J,K,3)
+C         R3D2(J,2)=R3D2(J,2)+UL(I,JD,K,3)**2
+         R4D2(J,1)=R4D2(J,1)+PL(I,JD,K)*PL(I,J,K)
+C         R4D2(J,2)=R4D2(J,2)+PL(I,JD,K)**2
+   53   CONTINUE
+       ENDIF
+  543 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 544 J2=JE,JE
+       IF (J2.EQ.JE) THEN
+        DO 54 J=1,JG
+        DO 54 K=1,KG
+        DO 54 I=1,IG
+         R1E2(J,1)=R1E2(J,1)+UL(I,JE,K,1)*UL(I,J,K,1)
+C         R1E2(J,2)=R1E2(J,2)+UL(I,JE,K,1)**2
+         R2E2(J,1)=R2E2(J,1)+(UL(I,JE,K,2)+UL(I,JE-1,K,2))
+     &                      *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C         R2E2(J,2)=R2E2(J,2)+((UL(I,JE,K,2)+UL(I,JE-1,K,2))*0.5D0)**2
+         R3E2(J,1)=R3E2(J,1)+UL(I,JE,K,3)*UL(I,J,K,3)
+C         R3E2(J,2)=R3E2(J,2)+UL(I,JE,K,3)**2
+         R4E2(J,1)=R4E2(J,1)+PL(I,JE,K)*PL(I,J,K)
+C         R4E2(J,2)=R4E2(J,2)+PL(I,JE,K)**2
+   54   CONTINUE
+       ENDIF
+  544 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 545 J2=JF,JF
+       IF (J2.EQ.JF) THEN
+        DO 55 J=1,JG
+        DO 55 K=1,KG
+        DO 55 I=1,IG
+         R1F2(J,1)=R1F2(J,1)+UL(I,JF,K,1)*UL(I,J,K,1)
+C         R1F2(J,2)=R1F2(J,2)+UL(I,JF,K,1)**2
+         R2F2(J,1)=R2F2(J,1)+(UL(I,JF,K,2)+UL(I,JF-1,K,2))
+     &                       *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C         R2F2(J,2)=R2F2(J,2)+((UL(I,JF,K,2)+UL(I,JF-1,K,2))*0.5D0)**2
+         R3F2(J,1)=R3F2(J,1)+UL(I,JF,K,3)*UL(I,J,K,3)
+C         R3F2(J,2)=R3F2(J,2)+UL(I,JF,K,3)**2
+         R4F2(J,1)=R4F2(J,1)+PL(I,JF,K)*PL(I,J,K)
+C         R4F2(J,2)=R4F2(J,2)+PL(I,JF,K)**2
+   55   CONTINUE
+       ENDIF
+  545 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 546 J2=JH,JH
+       IF (J2.EQ.JH) THEN
+        DO 56 J=1,JG
+        DO 56 K=1,KG
+        DO 56 I=1,IG
+         R1H2(J,1)=R1H2(J,1)+UL(I,JH,K,1)*UL(I,J,K,1)
+C         R1H2(J,2)=R1H2(J,2)+UL(I,JH,K,1)**2
+         R2H2(J,1)=R2H2(J,1)+(UL(I,JH,K,2)+UL(I,JH-1,K,2))
+     &                       *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C         R2H2(J,2)=R2H2(J,2)+((UL(I,JH,K,2)+UL(I,JH-1,K,2))*0.5D0)**2
+         R3H2(J,1)=R3H2(J,1)+UL(I,JH,K,3)*UL(I,J,K,3)
+C         R3H2(J,2)=R3H2(J,2)+UL(I,JH,K,3)**2
+         R4H2(J,1)=R4H2(J,1)+PL(I,JH,K)*PL(I,J,K)
+C         R4H2(J,2)=R4H2(J,2)+PL(I,JH,K)**2
+   56   CONTINUE
+       ENDIF
+  546 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 547 J2=JI,JI
+       IF (J2.EQ.JI) THEN
+        DO 57 J=1,JG
+        DO 57 K=1,KG
+        DO 57 I=1,IG
+         R1I2(J,1)=R1I2(J,1)+UL(I,JI,K,1)*UL(I,J,K,1)
+C         R1I2(J,2)=R1I2(J,2)+UL(I,JI,K,1)**2
+         R2I2(J,1)=R2I2(J,1)+(UL(I,JI,K,2)+UL(I,JI-1,K,2))
+     &                       *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C         R2I2(J,2)=R2I2(J,2)+((UL(I,JI,K,2)+UL(I,JI-1,K,2))*0.5D0)**2
+         R3I2(J,1)=R3I2(J,1)+UL(I,JI,K,3)*UL(I,J,K,3)
+C         R3I2(J,2)=R3I2(J,2)+UL(I,JI,K,3)**2
+         R4I2(J,1)=R4I2(J,1)+PL(I,JI,K)*PL(I,J,K)
+C         R4I2(J,2)=R4I2(J,2)+PL(I,JI,K)**2
+   57   CONTINUE
+       ENDIF
+  547 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 548 J2=JJ,JJ
+       IF (J2.EQ.JJ) THEN
+        DO 58 J=1,JG
+        DO 58 K=1,KG
+        DO 58 I=1,IG
+         R1J2(J,1)=R1J2(J,1)+UL(I,JJ,K,1)*UL(I,J,K,1)
+C         R1J2(J,2)=R1J2(J,2)+UL(I,JJ,K,1)**2
+         R2J2(J,1)=R2J2(J,1)+(UL(I,JJ,K,2)+UL(I,JJ-1,K,2))
+     &                       *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C         R2J2(J,2)=R2J2(J,2)+((UL(I,JJ,K,2)+UL(I,JJ-1,K,2))*0.5D0)**2
+         R3J2(J,1)=R3J2(J,1)+UL(I,JJ,K,3)*UL(I,J,K,3)
+C         R3J2(J,2)=R3J2(J,2)+UL(I,JJ,K,3)**2
+         R4J2(J,1)=R4J2(J,1)+PL(I,JJ,K)*PL(I,J,K)
+C         R4J2(J,2)=R4J2(J,2)+PL(I,JJ,K)**2
+   58   CONTINUE
+       ENDIF
+  548 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 549 J2=JK,JK
+       IF (J2.EQ.JK) THEN
+        DO 59 J=1,JG
+        DO 59 K=1,KG
+        DO 59 I=1,IG
+         R1K2(J,1)=R1K2(J,1)+UL(I,JK,K,1)*UL(I,J,K,1)
+C         R1K2(J,2)=R1K2(J,2)+UL(I,JK,K,1)**2
+         R2K2(J,1)=R2K2(J,1)+(UL(I,JK,K,2)+UL(I,JK-1,K,2))
+     &                       *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C         R2K2(J,2)=R2K2(J,2)+((UL(I,JK,K,2)+UL(I,JK-1,K,2))*0.5D0)**2
+         R3K2(J,1)=R3K2(J,1)+UL(I,JK,K,3)*UL(I,J,K,3)
+C         R3K2(J,2)=R3K2(J,2)+UL(I,JK,K,3)**2
+         R4K2(J,1)=R4K2(J,1)+PL(I,JK,K)*PL(I,J,K)
+C         R4K2(J,2)=R4K2(J,2)+PL(I,JK,K)**2
+   59   CONTINUE
+       ENDIF
+  549 CONTINUE
+!XOCL END SPREAD
+C
+!XOCL SPREAD DO /ISC
+      DO 550 J2=JL,JL
+       IF (J2.EQ.JL) THEN
+        DO 60 J=1,JG
+        DO 60 K=1,KG
+        DO 60 I=1,IG
+         R1L2(J,1)=R1L2(J,1)+UL(I,JL,K,1)*UL(I,J,K,1)
+C         R1L2(J,2)=R1L2(J,2)+UL(I,JL,K,1)**2
+         R2L2(J,1)=R2L2(J,1)+(UL(I,JL,K,2)+UL(I,JL-1,K,2))
+     &                       *(UL(I,J,K,2)+UL(I,J-1,K,2))*0.25D0
+C         R2L2(J,2)=R2L2(J,2)+((UL(I,JL,K,2)+UL(I,JL-1,K,2))*0.5D0)**2
+         R3L2(J,1)=R3L2(J,1)+UL(I,JL,K,3)*UL(I,J,K,3)
+C         R3L2(J,2)=R3L2(J,2)+UL(I,JL,K,3)**2
+         R4L2(J,1)=R4L2(J,1)+PL(I,JL,K)*PL(I,J,K)
+C         R4L2(J,2)=R4L2(J,2)+PL(I,JL,K)**2
+   60   CONTINUE
+       ENDIF
+  550 CONTINUE
+!XOCL END SPREAD
+C
+C----------------------------------- XY-PLANE
+C
+!XOCL SPREAD DO /ISE
+      DO 680 J2=JA,JA
+       IF (J2.EQ.JA) THEN
+        DO 690 J=1,JG-1
+        DO 690 I=1,IG
+         ATPC4(I,J,JA,1)=ATPC4(I,J,JA,1)+R1A4(I,J)
+         ATPC4(I,J,JA,2)=ATPC4(I,J,JA,2)+R2A4(I,J)
+         ATPC4(I,J,JA,3)=ATPC4(I,J,JA,3)+R3A4(I,J)
+         ATPC4(I,J,JA,4)=ATPC4(I,J,JA,4)+R4A4(I,J)
+  690   CONTINUE                               
+       ENDIF                                   
+  680 CONTINUE                                 
+!XOCL END SPREAD                               
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 681 J2=JB,JB                         
+       IF (J2.EQ.JB) THEN                     
+        DO 691 J=1,JG-1                        
+        DO 691 I=1,IG
+         ATPC4(I,J,JB,1)=ATPC4(I,J,JB,1)+R1B4(I,J)
+         ATPC4(I,J,JB,2)=ATPC4(I,J,JB,2)+R2B4(I,J)
+         ATPC4(I,J,JB,3)=ATPC4(I,J,JB,3)+R3B4(I,J)
+         ATPC4(I,J,JB,4)=ATPC4(I,J,JB,4)+R4B4(I,J)
+  691   CONTINUE                                   
+       ENDIF                                       
+  681 CONTINUE                                     
+!XOCL END SPREAD                                   
+C                                                  
+!XOCL SPREAD DO /ISE                               
+      DO 682 J2=JC,JC                              
+       IF (J2.EQ.JC) THEN                          
+        DO 692 J=1,JG-1                             
+        DO 692 I=1,IG
+         ATPC4(I,J,JC,1)=ATPC4(I,J,JC,1)+R1C4(I,J)
+         ATPC4(I,J,JC,2)=ATPC4(I,J,JC,2)+R2C4(I,J)
+         ATPC4(I,J,JC,3)=ATPC4(I,J,JC,3)+R3C4(I,J)
+         ATPC4(I,J,JC,4)=ATPC4(I,J,JC,4)+R4C4(I,J)
+  692   CONTINUE                                   
+       ENDIF                                       
+  682 CONTINUE                                     
+!XOCL END SPREAD                                   
+C                                                  
+!XOCL SPREAD DO /ISE                               
+      DO 683 J2=JD,JD                              
+       IF (J2.EQ.JD) THEN                          
+        DO 693 J=1,JG-1                             
+        DO 693 I=1,IG
+         ATPC4(I,J,JD,1)=ATPC4(I,J,JD,1)+R1D4(I,J)
+         ATPC4(I,J,JD,2)=ATPC4(I,J,JD,2)+R2D4(I,J)
+         ATPC4(I,J,JD,3)=ATPC4(I,J,JD,3)+R3D4(I,J)
+         ATPC4(I,J,JD,4)=ATPC4(I,J,JD,4)+R4D4(I,J)
+  693   CONTINUE                                   
+       ENDIF                                       
+  683 CONTINUE                                     
+!XOCL END SPREAD                                   
+C                                                  
+!XOCL SPREAD DO /ISE                               
+      DO 684 J2=JE,JE                              
+       IF (J2.EQ.JE) THEN                          
+        DO 694 J=1,JG-1                             
+        DO 694 I=1,IG
+         ATPC4(I,J,JE,1)=ATPC4(I,J,JE,1)+R1E4(I,J)
+         ATPC4(I,J,JE,2)=ATPC4(I,J,JE,2)+R2E4(I,J)
+         ATPC4(I,J,JE,3)=ATPC4(I,J,JE,3)+R3E4(I,J)
+         ATPC4(I,J,JE,4)=ATPC4(I,J,JE,4)+R4E4(I,J)
+  694   CONTINUE                                   
+       ENDIF                                       
+  684 CONTINUE                                     
+!XOCL END SPREAD                                   
+C                                                  
+!XOCL SPREAD DO /ISE                               
+      DO 685 J2=JF,JF                              
+       IF (J2.EQ.JF) THEN                          
+        DO 695 J=1,JG-1                             
+        DO 695 I=1,IG
+         ATPC4(I,J,JF,1)=ATPC4(I,J,JF,1)+R1F4(I,J)
+         ATPC4(I,J,JF,2)=ATPC4(I,J,JF,2)+R2F4(I,J)
+         ATPC4(I,J,JF,3)=ATPC4(I,J,JF,3)+R3F4(I,J)
+         ATPC4(I,J,JF,4)=ATPC4(I,J,JF,4)+R4F4(I,J)
+  695   CONTINUE                                   
+       ENDIF                                       
+  685 CONTINUE                                     
+!XOCL END SPREAD                                   
+C                                                  
+!XOCL SPREAD DO /ISE                               
+      DO 686 J2=JH,JH                              
+       IF (J2.EQ.JH) THEN                          
+        DO 696 J=1,JG-1                             
+        DO 696 I=1,IG
+         ATPC4(I,J,JH,1)=ATPC4(I,J,JH,1)+R1H4(I,J)
+         ATPC4(I,J,JH,2)=ATPC4(I,J,JH,2)+R2H4(I,J)
+         ATPC4(I,J,JH,3)=ATPC4(I,J,JH,3)+R3H4(I,J)
+         ATPC4(I,J,JH,4)=ATPC4(I,J,JH,4)+R4H4(I,J)
+  696   CONTINUE                                   
+       ENDIF                                       
+  686 CONTINUE                                     
+!XOCL END SPREAD                                   
+C                                                  
+!XOCL SPREAD DO /ISE                               
+      DO 687 J2=JI,JI                              
+       IF (J2.EQ.JI) THEN                          
+        DO 697 J=1,JG-1                             
+        DO 697 I=1,IG
+         ATPC4(I,J,JI,1)=ATPC4(I,J,JI,1)+R1I4(I,J)
+         ATPC4(I,J,JI,2)=ATPC4(I,J,JI,2)+R2I4(I,J)
+         ATPC4(I,J,JI,3)=ATPC4(I,J,JI,3)+R3I4(I,J)
+         ATPC4(I,J,JI,4)=ATPC4(I,J,JI,4)+R4I4(I,J)
+  697   CONTINUE                                   
+       ENDIF                                       
+  687 CONTINUE                                     
+!XOCL END SPREAD                                   
+C                                                  
+!XOCL SPREAD DO /ISE                               
+      DO 688 J2=JJ,JJ                              
+       IF (J2.EQ.JJ) THEN                          
+        DO 698 J=1,JG-1                             
+        DO 698 I=1,IG
+         ATPC4(I,J,JJ,1)=ATPC4(I,J,JJ,1)+R1J4(I,J)
+         ATPC4(I,J,JJ,2)=ATPC4(I,J,JJ,2)+R2J4(I,J)
+         ATPC4(I,J,JJ,3)=ATPC4(I,J,JJ,3)+R3J4(I,J)
+         ATPC4(I,J,JJ,4)=ATPC4(I,J,JJ,4)+R4J4(I,J)
+  698   CONTINUE                                   
+       ENDIF                                       
+  688 CONTINUE                                     
+!XOCL END SPREAD                                   
+C                                                  
+!XOCL SPREAD DO /ISE                               
+      DO 689 J2=JK,JK                              
+       IF (J2.EQ.JK) THEN                          
+        DO 699 J=1,JG-1                             
+        DO 699 I=1,IG
+         ATPC4(I,J,JK,1)=ATPC4(I,J,JK,1)+R1K4(I,J)
+         ATPC4(I,J,JK,2)=ATPC4(I,J,JK,2)+R2K4(I,J)
+         ATPC4(I,J,JK,3)=ATPC4(I,J,JK,3)+R3K4(I,J)
+         ATPC4(I,J,JK,4)=ATPC4(I,J,JK,4)+R4K4(I,J)
+  699   CONTINUE                                   
+       ENDIF                                       
+  689 CONTINUE                                     
+!XOCL END SPREAD                                   
+C                                                  
+!XOCL SPREAD DO /ISE                               
+      DO 670 J2=JL,JL                              
+       IF (J2.EQ.JL) THEN                          
+        DO 700 J=1,JG-1                            
+        DO 700 I=1,IG
+         ATPC4(I,J,JL,1)=ATPC4(I,J,JL,1)+R1L4(I,J)
+         ATPC4(I,J,JL,2)=ATPC4(I,J,JL,2)+R2L4(I,J)
+         ATPC4(I,J,JL,3)=ATPC4(I,J,JL,3)+R3L4(I,J)
+         ATPC4(I,J,JL,4)=ATPC4(I,J,JL,4)+R4L4(I,J)
+  700   CONTINUE
+       ENDIF
+  670 CONTINUE
+!XOCL END SPREAD
+C                                              
+C----------------------------------- WALL-NORMAL
+C
+!XOCL SPREAD DO /ISE
+      DO 580 J2=JA,JA
+       IF (J2.EQ.JA) THEN
+        DO 90 J=1,JG-1
+         ATPC2(J,JA,1)=ATPC2(J,JA,1)+R1A2(J,1)
+         ATPC2(J,JA,2)=ATPC2(J,JA,2)+R2A2(J,1)
+         ATPC2(J,JA,3)=ATPC2(J,JA,3)+R3A2(J,1)
+         ATPC2(J,JA,4)=ATPC2(J,JA,4)+R4A2(J,1)
+   90   CONTINUE                              
+       ENDIF                                  
+  580 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 581 J2=JB,JB                         
+       IF (J2.EQ.JB) THEN                     
+        DO 91 J=1,JG-1                        
+         ATPC2(J,JB,1)=ATPC2(J,JB,1)+R1B2(J,1)
+         ATPC2(J,JB,2)=ATPC2(J,JB,2)+R2B2(J,1)
+         ATPC2(J,JB,3)=ATPC2(J,JB,3)+R3B2(J,1)
+         ATPC2(J,JB,4)=ATPC2(J,JB,4)+R4B2(J,1)
+   91   CONTINUE                              
+       ENDIF                                  
+  581 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 582 J2=JC,JC                         
+       IF (J2.EQ.JC) THEN                     
+        DO 92 J=1,JG-1                        
+         ATPC2(J,JC,1)=ATPC2(J,JC,1)+R1C2(J,1)
+         ATPC2(J,JC,2)=ATPC2(J,JC,2)+R2C2(J,1)
+         ATPC2(J,JC,3)=ATPC2(J,JC,3)+R3C2(J,1)
+         ATPC2(J,JC,4)=ATPC2(J,JC,4)+R4C2(J,1)
+   92   CONTINUE                              
+       ENDIF                                  
+  582 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 583 J2=JD,JD                         
+       IF (J2.EQ.JD) THEN                     
+        DO 93 J=1,JG-1                        
+         ATPC2(J,JD,1)=ATPC2(J,JD,1)+R1D2(J,1)
+         ATPC2(J,JD,2)=ATPC2(J,JD,2)+R2D2(J,1)
+         ATPC2(J,JD,3)=ATPC2(J,JD,3)+R3D2(J,1)
+         ATPC2(J,JD,4)=ATPC2(J,JD,4)+R4D2(J,1)
+   93   CONTINUE                              
+       ENDIF                                  
+  583 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 584 J2=JE,JE                         
+       IF (J2.EQ.JE) THEN                     
+        DO 94 J=1,JG-1                        
+         ATPC2(J,JE,1)=ATPC2(J,JE,1)+R1E2(J,1)
+         ATPC2(J,JE,2)=ATPC2(J,JE,2)+R2E2(J,1)
+         ATPC2(J,JE,3)=ATPC2(J,JE,3)+R3E2(J,1)
+         ATPC2(J,JE,4)=ATPC2(J,JE,4)+R4E2(J,1)
+   94   CONTINUE                              
+       ENDIF                                  
+  584 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 585 J2=JF,JF                         
+       IF (J2.EQ.JF) THEN                     
+        DO 95 J=1,JG-1                        
+         ATPC2(J,JF,1)=ATPC2(J,JF,1)+R1F2(J,1)
+         ATPC2(J,JF,2)=ATPC2(J,JF,2)+R2F2(J,1)
+         ATPC2(J,JF,3)=ATPC2(J,JF,3)+R3F2(J,1)
+         ATPC2(J,JF,4)=ATPC2(J,JF,4)+R4F2(J,1)
+   95   CONTINUE                              
+       ENDIF                                  
+  585 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 586 J2=JH,JH                         
+       IF (J2.EQ.JH) THEN                     
+        DO 96 J=1,JG-1                        
+         ATPC2(J,JH,1)=ATPC2(J,JH,1)+R1H2(J,1)
+         ATPC2(J,JH,2)=ATPC2(J,JH,2)+R2H2(J,1)
+         ATPC2(J,JH,3)=ATPC2(J,JH,3)+R3H2(J,1)
+         ATPC2(J,JH,4)=ATPC2(J,JH,4)+R4H2(J,1)
+   96   CONTINUE                              
+       ENDIF                                  
+  586 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 587 J2=JI,JI                         
+       IF (J2.EQ.JI) THEN                     
+        DO 97 J=1,JG-1                        
+         ATPC2(J,JI,1)=ATPC2(J,JI,1)+R1I2(J,1)
+         ATPC2(J,JI,2)=ATPC2(J,JI,2)+R2I2(J,1)
+         ATPC2(J,JI,3)=ATPC2(J,JI,3)+R3I2(J,1)
+         ATPC2(J,JI,4)=ATPC2(J,JI,4)+R4I2(J,1)
+   97   CONTINUE                              
+       ENDIF                                  
+  587 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 588 J2=JJ,JJ                         
+       IF (J2.EQ.JJ) THEN                     
+        DO 98 J=1,JG-1                        
+         ATPC2(J,JJ,1)=ATPC2(J,JJ,1)+R1J2(J,1)
+         ATPC2(J,JJ,2)=ATPC2(J,JJ,2)+R2J2(J,1)
+         ATPC2(J,JJ,3)=ATPC2(J,JJ,3)+R3J2(J,1)
+         ATPC2(J,JJ,4)=ATPC2(J,JJ,4)+R4J2(J,1)
+   98   CONTINUE                              
+       ENDIF                                  
+  588 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 589 J2=JK,JK                         
+       IF (J2.EQ.JK) THEN                     
+        DO 99 J=1,JG-1                        
+         ATPC2(J,JK,1)=ATPC2(J,JK,1)+R1K2(J,1)
+         ATPC2(J,JK,2)=ATPC2(J,JK,2)+R2K2(J,1)
+         ATPC2(J,JK,3)=ATPC2(J,JK,3)+R3K2(J,1)
+         ATPC2(J,JK,4)=ATPC2(J,JK,4)+R4K2(J,1)
+   99   CONTINUE                              
+       ENDIF                                  
+  589 CONTINUE                                
+!XOCL END SPREAD                              
+C                                             
+!XOCL SPREAD DO /ISE                          
+      DO 590 J2=JL,JL                         
+       IF (J2.EQ.JL) THEN                     
+        DO 300 J=1,JG-1                       
+         ATPC2(J,JL,1)=ATPC2(J,JL,1)+R1L2(J,1)
+         ATPC2(J,JL,2)=ATPC2(J,JL,2)+R2L2(J,1)
+         ATPC2(J,JL,3)=ATPC2(J,JL,3)+R3L2(J,1)
+         ATPC2(J,JL,4)=ATPC2(J,JL,4)+R4L2(J,1)
+  300   CONTINUE
+       ENDIF
+  590 CONTINUE
+!XOCL END SPREAD
+C
+      RETURN
+      END
+C
+C====================================================================
+C     OUTPUT TIME-AVERAGE DATA (VELOCITY FIELD)
+C     PROGRAMED BY H.ABE
+      SUBROUTINE OUTCOR(CODE)                                        
+C     2004.05.31
+C     REVISED ON 2004.08.31 BY T.TSUKAHARA
+C     REVISED ON 2004.09.24 BY T.TSUKAHARA
+C====================================================================
+C
+      INCLUDE './INCFILE/INCINIT96'
+      INCLUDE './INCFILE/INXINDX96'                                            
+      INCLUDE './INCFILE/INXSUBP96'                                            
+      INCLUDE './INCFILE/INCPRS'                                               
+C
+C----LOCAL VARIABLES-------------------------------------------
+C
+      INCLUDE './INCFILE/INCDATA'
+      INCLUDE './INCFILE/INCMESH'
+      CHARACTER*25 CODE
+      CHARACTER*47 CMSP(2)
+      CHARACTER*45 CMCR(2)
+      CHARACTER*71 CPRM(35),CMTD,CMTD2
+C
+      DIMENSION RMS(JG,4)
+C
+C----GLOBAL VARIABLES------------------------------------------
+C
+      COMMON /NAV/ NAVE                                                
+      COMMON /ATIM/ AVETIM                                              
+C
+      COMMON /UTAU/ AUTUB,AUTUT
+      COMMON /UTAU2/ AUTUB2,AUTUT2
+      COMMON /AVE1/ AAUG(JG),AAVG(JG),AAWG(JG),AAPG(JG)                 
+      COMMON /AVE2/ AURMSG(JG),AVRMSG(JG),AWRMSG(JG),APRMSG(JG)         
+      COMMON /AVE4/ AU11G(JG),AU12G(JG),AU13G(JG)                       
+     &             ,AU22G(JG),AU23G(JG),AU33G(JG)                       
+C
+      COMMON /COR2/ ATPC2G(JG,JG,4),ATPC4G(IG,JG,JG,4)
+C
+      DIMENSION RESK(JG),RES11(JG),RES22(JG),RES33(JG),RES12(JG)
+     &         ,Y(JG),YY(JG)
+C
+C----PARALLEL DEFINITION----------------------------------------
+C
+!XOCL GLOBAL AAUG(/INE),AAVG(/INE),AAWG(/INE),AAPG(/INE)
+!XOCL GLOBAL AURMSG(/INE),AVRMSG(/INE),AWRMSG(/INE),APRMSG(/INE)      
+!XOCL GLOBAL AU11G(/INE),AU12G(/INE),AU13G(/INE) &
+!XOCL       ,AU22G(/INE),AU23G(/INE),AU33G(/INE)
+!XOCL GLOBAL ATPC2G, ATPC4G
+C
+C=================================================================
+C
+      PAVE=1.0D0/DBLE(NAVE)
+      DOOP=1.0D0/DBLE(IG*KG)
+      PZ  =1.0D0/DBLE(KG)
+      PAXZ=PAVE*DOOP
+      PAZ =PAVE*PZ
+C
+      AUTUT=AUTUT*PAVE
+      AUTUB=AUTUB*PAVE
+      AUTAU=(AUTUT+AUTUB)*0.5D0
+      AUTUT2=AUTUT2*PAVE
+      AUTUB2=AUTUB2*PAVE
+      AUTU2=(AUTUT2+AUTUB2)*0.5D0
+      VISCL=1.0D0*PRE/AUTAU
+      PVISC=AUTAU*RE
+      WRITE(6,*) ' AUTAU = ',AUTAU
+C
+      DO 100 J=1,JG
+        Y(J)=R(J)
+        YY(J)=RR(J)
+  100 CONTINUE
+C
+      DO 3 J=1,JG                                                 
+        RMS(J,1)=DSQRT(AU11G(J)*PAVE)                         
+        RMS(J,2)=DSQRT(AU22G(J)*PAVE)                         
+        RMS(J,3)=DSQRT(AU33G(J)*PAVE)                         
+        RMS(J,4)=DSQRT(APRMSG(J)*PAVE)                         
+    3 CONTINUE                                                       
+C
+C====================== SET MESH LOCATION
+C     JA : FIRST POINT FROM THE WALL
+C     JB : 
+C     JC : Y+=5.0
+C     JD : PEAK POINT OF TURBULENT ENERGY PRODUCTION
+C     JE : PEAK POINT OF STREAMWISE VELOCITY FLUCTUATION
+C     JF : 
+C     JH : 
+C     JI : Y=H/4
+C     JJ : 
+C     JK : 
+C     JL : CHANNEL CENTER
+C======================
+      JA=1
+      JB=5
+      JC=10
+      JD=16
+      JE=19
+      JF=26
+      JH=32
+      JI=36
+      JJ=40
+      JK=44
+      JL=48
+C======================
+C
+      DO 101 J=1,JG-1
+        ATPC2G(J,JA,1)=ATPC2G(J,JA,1)*PAXZ/RMS(J,1)/RMS(JA,1)
+        ATPC2G(J,JB,1)=ATPC2G(J,JB,1)*PAXZ/RMS(J,1)/RMS(JB,1)
+        ATPC2G(J,JC,1)=ATPC2G(J,JC,1)*PAXZ/RMS(J,1)/RMS(JC,1)
+        ATPC2G(J,JD,1)=ATPC2G(J,JD,1)*PAXZ/RMS(J,1)/RMS(JD,1)
+        ATPC2G(J,JE,1)=ATPC2G(J,JE,1)*PAXZ/RMS(J,1)/RMS(JE,1)
+        ATPC2G(J,JF,1)=ATPC2G(J,JF,1)*PAXZ/RMS(J,1)/RMS(JF,1)
+        ATPC2G(J,JH,1)=ATPC2G(J,JH,1)*PAXZ/RMS(J,1)/RMS(JH,1)
+        ATPC2G(J,JI,1)=ATPC2G(J,JI,1)*PAXZ/RMS(J,1)/RMS(JI,1)
+        ATPC2G(J,JJ,1)=ATPC2G(J,JJ,1)*PAXZ/RMS(J,1)/RMS(JJ,1)
+        ATPC2G(J,JK,1)=ATPC2G(J,JK,1)*PAXZ/RMS(J,1)/RMS(JK,1)
+        ATPC2G(J,JL,1)=ATPC2G(J,JL,1)*PAXZ/RMS(J,1)/RMS(JL,1)
+C
+        ATPC2G(J,JA,2)=ATPC2G(J,JA,2)*PAXZ/RMS(J,2)/RMS(JA,2)
+        ATPC2G(J,JB,2)=ATPC2G(J,JB,2)*PAXZ/RMS(J,2)/RMS(JB,2)
+        ATPC2G(J,JC,2)=ATPC2G(J,JC,2)*PAXZ/RMS(J,2)/RMS(JC,2)
+        ATPC2G(J,JD,2)=ATPC2G(J,JD,2)*PAXZ/RMS(J,2)/RMS(JD,2)
+        ATPC2G(J,JE,2)=ATPC2G(J,JE,2)*PAXZ/RMS(J,2)/RMS(JE,2)
+        ATPC2G(J,JF,2)=ATPC2G(J,JF,2)*PAXZ/RMS(J,2)/RMS(JF,2)
+        ATPC2G(J,JH,2)=ATPC2G(J,JH,2)*PAXZ/RMS(J,2)/RMS(JH,2)
+        ATPC2G(J,JI,2)=ATPC2G(J,JI,2)*PAXZ/RMS(J,2)/RMS(JI,2)
+        ATPC2G(J,JJ,2)=ATPC2G(J,JJ,2)*PAXZ/RMS(J,2)/RMS(JJ,2)
+        ATPC2G(J,JK,2)=ATPC2G(J,JK,2)*PAXZ/RMS(J,2)/RMS(JK,2)
+        ATPC2G(J,JL,2)=ATPC2G(J,JL,2)*PAXZ/RMS(J,2)/RMS(JL,2)
+C                                                          
+        ATPC2G(J,JA,3)=ATPC2G(J,JA,3)*PAXZ/RMS(J,3)/RMS(JA,3)
+        ATPC2G(J,JB,3)=ATPC2G(J,JB,3)*PAXZ/RMS(J,3)/RMS(JB,3)
+        ATPC2G(J,JC,3)=ATPC2G(J,JC,3)*PAXZ/RMS(J,3)/RMS(JC,3)
+        ATPC2G(J,JD,3)=ATPC2G(J,JD,3)*PAXZ/RMS(J,3)/RMS(JD,3)
+        ATPC2G(J,JE,3)=ATPC2G(J,JE,3)*PAXZ/RMS(J,3)/RMS(JE,3)
+        ATPC2G(J,JF,3)=ATPC2G(J,JF,3)*PAXZ/RMS(J,3)/RMS(JF,3)
+        ATPC2G(J,JH,3)=ATPC2G(J,JH,3)*PAXZ/RMS(J,3)/RMS(JH,3)
+        ATPC2G(J,JI,3)=ATPC2G(J,JI,3)*PAXZ/RMS(J,3)/RMS(JI,3)
+        ATPC2G(J,JJ,3)=ATPC2G(J,JJ,3)*PAXZ/RMS(J,3)/RMS(JJ,3)
+        ATPC2G(J,JK,3)=ATPC2G(J,JK,3)*PAXZ/RMS(J,3)/RMS(JK,3)
+        ATPC2G(J,JL,3)=ATPC2G(J,JL,3)*PAXZ/RMS(J,3)/RMS(JL,3)
+C                                                          
+        ATPC2G(J,JA,4)=ATPC2G(J,JA,4)*PAXZ/RMS(J,4)/RMS(JA,4)
+        ATPC2G(J,JB,4)=ATPC2G(J,JB,4)*PAXZ/RMS(J,4)/RMS(JB,4)
+        ATPC2G(J,JC,4)=ATPC2G(J,JC,4)*PAXZ/RMS(J,4)/RMS(JC,4)
+        ATPC2G(J,JD,4)=ATPC2G(J,JD,4)*PAXZ/RMS(J,4)/RMS(JD,4)
+        ATPC2G(J,JE,4)=ATPC2G(J,JE,4)*PAXZ/RMS(J,4)/RMS(JE,4)
+        ATPC2G(J,JF,4)=ATPC2G(J,JF,4)*PAXZ/RMS(J,4)/RMS(JF,4)
+        ATPC2G(J,JH,4)=ATPC2G(J,JH,4)*PAXZ/RMS(J,4)/RMS(JH,4)
+        ATPC2G(J,JI,4)=ATPC2G(J,JI,4)*PAXZ/RMS(J,4)/RMS(JI,4)
+        ATPC2G(J,JJ,4)=ATPC2G(J,JJ,4)*PAXZ/RMS(J,4)/RMS(JJ,4)
+        ATPC2G(J,JK,4)=ATPC2G(J,JK,4)*PAXZ/RMS(J,4)/RMS(JK,4)
+        ATPC2G(J,JL,4)=ATPC2G(J,JL,4)*PAXZ/RMS(J,4)/RMS(JL,4)
+  101 CONTINUE
+C
+      DO 102 J=JG,JG
+        ATPC2G(J,JA,1)=ATPC2G(J,JA,1)*PAXZ/RMS(J,1)/RMS(JA,1)
+        ATPC2G(J,JB,1)=ATPC2G(J,JB,1)*PAXZ/RMS(J,1)/RMS(JB,1)
+        ATPC2G(J,JC,1)=ATPC2G(J,JC,1)*PAXZ/RMS(J,1)/RMS(JC,1)
+        ATPC2G(J,JD,1)=ATPC2G(J,JD,1)*PAXZ/RMS(J,1)/RMS(JD,1)
+        ATPC2G(J,JE,1)=ATPC2G(J,JE,1)*PAXZ/RMS(J,1)/RMS(JE,1)
+        ATPC2G(J,JF,1)=ATPC2G(J,JF,1)*PAXZ/RMS(J,1)/RMS(JF,1)
+        ATPC2G(J,JH,1)=ATPC2G(J,JH,1)*PAXZ/RMS(J,1)/RMS(JH,1)
+        ATPC2G(J,JI,1)=ATPC2G(J,JI,1)*PAXZ/RMS(J,1)/RMS(JI,1)
+        ATPC2G(J,JJ,1)=ATPC2G(J,JJ,1)*PAXZ/RMS(J,1)/RMS(JJ,1)
+        ATPC2G(J,JK,1)=ATPC2G(J,JK,1)*PAXZ/RMS(J,1)/RMS(JK,1)
+        ATPC2G(J,JL,1)=ATPC2G(J,JL,1)*PAXZ/RMS(J,1)/RMS(JL,1)
+C                                                          
+        ATPC2G(J,JA,3)=ATPC2G(J,JA,3)*PAXZ/RMS(J,3)/RMS(JA,3)
+        ATPC2G(J,JB,3)=ATPC2G(J,JB,3)*PAXZ/RMS(J,3)/RMS(JB,3)
+        ATPC2G(J,JC,3)=ATPC2G(J,JC,3)*PAXZ/RMS(J,3)/RMS(JC,3)
+        ATPC2G(J,JD,3)=ATPC2G(J,JD,3)*PAXZ/RMS(J,3)/RMS(JD,3)
+        ATPC2G(J,JE,3)=ATPC2G(J,JE,3)*PAXZ/RMS(J,3)/RMS(JE,3)
+        ATPC2G(J,JF,3)=ATPC2G(J,JF,3)*PAXZ/RMS(J,3)/RMS(JF,3)
+        ATPC2G(J,JH,3)=ATPC2G(J,JH,3)*PAXZ/RMS(J,3)/RMS(JH,3)
+        ATPC2G(J,JI,3)=ATPC2G(J,JI,3)*PAXZ/RMS(J,3)/RMS(JI,3)
+        ATPC2G(J,JJ,3)=ATPC2G(J,JJ,3)*PAXZ/RMS(J,3)/RMS(JJ,3)
+        ATPC2G(J,JK,3)=ATPC2G(J,JK,3)*PAXZ/RMS(J,3)/RMS(JK,3)
+        ATPC2G(J,JL,3)=ATPC2G(J,JL,3)*PAXZ/RMS(J,3)/RMS(JL,3)
+C                                                          
+        ATPC2G(J,JA,4)=ATPC2G(J,JA,4)*PAXZ/RMS(J,4)/RMS(JA,4)
+        ATPC2G(J,JB,4)=ATPC2G(J,JB,4)*PAXZ/RMS(J,4)/RMS(JB,4)
+        ATPC2G(J,JC,4)=ATPC2G(J,JC,4)*PAXZ/RMS(J,4)/RMS(JC,4)
+        ATPC2G(J,JD,4)=ATPC2G(J,JD,4)*PAXZ/RMS(J,4)/RMS(JD,4)
+        ATPC2G(J,JE,4)=ATPC2G(J,JE,4)*PAXZ/RMS(J,4)/RMS(JE,4)
+        ATPC2G(J,JF,4)=ATPC2G(J,JF,4)*PAXZ/RMS(J,4)/RMS(JF,4)
+        ATPC2G(J,JH,4)=ATPC2G(J,JH,4)*PAXZ/RMS(J,4)/RMS(JH,4)
+        ATPC2G(J,JI,4)=ATPC2G(J,JI,4)*PAXZ/RMS(J,4)/RMS(JI,4)
+        ATPC2G(J,JJ,4)=ATPC2G(J,JJ,4)*PAXZ/RMS(J,4)/RMS(JJ,4)
+        ATPC2G(J,JK,4)=ATPC2G(J,JK,4)*PAXZ/RMS(J,4)/RMS(JK,4)
+        ATPC2G(J,JL,4)=ATPC2G(J,JL,4)*PAXZ/RMS(J,4)/RMS(JL,4)
+  102 CONTINUE
+C
+      DO 103 J=1,JG-1
+      DO 103 I=1,IG
+        ATPC4G(I,J,JA,1)=ATPC4G(I,J,JA,1)*PAZ/RMS(J,1)/RMS(JA,1)
+        ATPC4G(I,J,JB,1)=ATPC4G(I,J,JB,1)*PAZ/RMS(J,1)/RMS(JB,1)
+        ATPC4G(I,J,JC,1)=ATPC4G(I,J,JC,1)*PAZ/RMS(J,1)/RMS(JC,1)
+        ATPC4G(I,J,JD,1)=ATPC4G(I,J,JD,1)*PAZ/RMS(J,1)/RMS(JD,1)
+        ATPC4G(I,J,JE,1)=ATPC4G(I,J,JE,1)*PAZ/RMS(J,1)/RMS(JE,1)
+        ATPC4G(I,J,JF,1)=ATPC4G(I,J,JF,1)*PAZ/RMS(J,1)/RMS(JF,1)
+        ATPC4G(I,J,JH,1)=ATPC4G(I,J,JH,1)*PAZ/RMS(J,1)/RMS(JH,1)
+        ATPC4G(I,J,JI,1)=ATPC4G(I,J,JI,1)*PAZ/RMS(J,1)/RMS(JI,1)
+        ATPC4G(I,J,JJ,1)=ATPC4G(I,J,JJ,1)*PAZ/RMS(J,1)/RMS(JJ,1)
+        ATPC4G(I,J,JK,1)=ATPC4G(I,J,JK,1)*PAZ/RMS(J,1)/RMS(JK,1)
+        ATPC4G(I,J,JL,1)=ATPC4G(I,J,JL,1)*PAZ/RMS(J,1)/RMS(JL,1)
+C
+        ATPC4G(I,J,JA,2)=ATPC4G(I,J,JA,2)*PAZ/RMS(J,2)/RMS(JA,2)
+        ATPC4G(I,J,JB,2)=ATPC4G(I,J,JB,2)*PAZ/RMS(J,2)/RMS(JB,2)
+        ATPC4G(I,J,JC,2)=ATPC4G(I,J,JC,2)*PAZ/RMS(J,2)/RMS(JC,2)
+        ATPC4G(I,J,JD,2)=ATPC4G(I,J,JD,2)*PAZ/RMS(J,2)/RMS(JD,2)
+        ATPC4G(I,J,JE,2)=ATPC4G(I,J,JE,2)*PAZ/RMS(J,2)/RMS(JE,2)
+        ATPC4G(I,J,JF,2)=ATPC4G(I,J,JF,2)*PAZ/RMS(J,2)/RMS(JF,2)
+        ATPC4G(I,J,JH,2)=ATPC4G(I,J,JH,2)*PAZ/RMS(J,2)/RMS(JH,2)
+        ATPC4G(I,J,JI,2)=ATPC4G(I,J,JI,2)*PAZ/RMS(J,2)/RMS(JI,2)
+        ATPC4G(I,J,JJ,2)=ATPC4G(I,J,JJ,2)*PAZ/RMS(J,2)/RMS(JJ,2)
+        ATPC4G(I,J,JK,2)=ATPC4G(I,J,JK,2)*PAZ/RMS(J,2)/RMS(JK,2)
+        ATPC4G(I,J,JL,2)=ATPC4G(I,J,JL,2)*PAZ/RMS(J,2)/RMS(JL,2)
+C                                                        
+        ATPC4G(I,J,JA,3)=ATPC4G(I,J,JA,3)*PAZ/RMS(J,3)/RMS(JA,3)
+        ATPC4G(I,J,JB,3)=ATPC4G(I,J,JB,3)*PAZ/RMS(J,3)/RMS(JB,3)
+        ATPC4G(I,J,JC,3)=ATPC4G(I,J,JC,3)*PAZ/RMS(J,3)/RMS(JC,3)
+        ATPC4G(I,J,JD,3)=ATPC4G(I,J,JD,3)*PAZ/RMS(J,3)/RMS(JD,3)
+        ATPC4G(I,J,JE,3)=ATPC4G(I,J,JE,3)*PAZ/RMS(J,3)/RMS(JE,3)
+        ATPC4G(I,J,JF,3)=ATPC4G(I,J,JF,3)*PAZ/RMS(J,3)/RMS(JF,3)
+        ATPC4G(I,J,JH,3)=ATPC4G(I,J,JH,3)*PAZ/RMS(J,3)/RMS(JH,3)
+        ATPC4G(I,J,JI,3)=ATPC4G(I,J,JI,3)*PAZ/RMS(J,3)/RMS(JI,3)
+        ATPC4G(I,J,JJ,3)=ATPC4G(I,J,JJ,3)*PAZ/RMS(J,3)/RMS(JJ,3)
+        ATPC4G(I,J,JK,3)=ATPC4G(I,J,JK,3)*PAZ/RMS(J,3)/RMS(JK,3)
+        ATPC4G(I,J,JL,3)=ATPC4G(I,J,JL,3)*PAZ/RMS(J,3)/RMS(JL,3)
+C                                                        
+        ATPC4G(I,J,JA,4)=ATPC4G(I,J,JA,4)*PAZ/RMS(J,4)/RMS(JA,4)
+        ATPC4G(I,J,JB,4)=ATPC4G(I,J,JB,4)*PAZ/RMS(J,4)/RMS(JB,4)
+        ATPC4G(I,J,JC,4)=ATPC4G(I,J,JC,4)*PAZ/RMS(J,4)/RMS(JC,4)
+        ATPC4G(I,J,JD,4)=ATPC4G(I,J,JD,4)*PAZ/RMS(J,4)/RMS(JD,4)
+        ATPC4G(I,J,JE,4)=ATPC4G(I,J,JE,4)*PAZ/RMS(J,4)/RMS(JE,4)
+        ATPC4G(I,J,JF,4)=ATPC4G(I,J,JF,4)*PAZ/RMS(J,4)/RMS(JF,4)
+        ATPC4G(I,J,JH,4)=ATPC4G(I,J,JH,4)*PAZ/RMS(J,4)/RMS(JH,4)
+        ATPC4G(I,J,JI,4)=ATPC4G(I,J,JI,4)*PAZ/RMS(J,4)/RMS(JI,4)
+        ATPC4G(I,J,JJ,4)=ATPC4G(I,J,JJ,4)*PAZ/RMS(J,4)/RMS(JJ,4)
+        ATPC4G(I,J,JK,4)=ATPC4G(I,J,JK,4)*PAZ/RMS(J,4)/RMS(JK,4)
+        ATPC4G(I,J,JL,4)=ATPC4G(I,J,JL,4)*PAZ/RMS(J,4)/RMS(JL,4)
+  103 CONTINUE
+C
+      DO 104 J=JG,JG
+      DO 104 I=1,IG
+        ATPC4G(I,J,JA,1)=ATPC4G(I,J,JA,1)*PAZ/RMS(J,1)/RMS(JA,1)
+        ATPC4G(I,J,JB,1)=ATPC4G(I,J,JB,1)*PAZ/RMS(J,1)/RMS(JB,1)
+        ATPC4G(I,J,JC,1)=ATPC4G(I,J,JC,1)*PAZ/RMS(J,1)/RMS(JC,1)
+        ATPC4G(I,J,JD,1)=ATPC4G(I,J,JD,1)*PAZ/RMS(J,1)/RMS(JD,1)
+        ATPC4G(I,J,JE,1)=ATPC4G(I,J,JE,1)*PAZ/RMS(J,1)/RMS(JE,1)
+        ATPC4G(I,J,JF,1)=ATPC4G(I,J,JF,1)*PAZ/RMS(J,1)/RMS(JF,1)
+        ATPC4G(I,J,JH,1)=ATPC4G(I,J,JH,1)*PAZ/RMS(J,1)/RMS(JH,1)
+        ATPC4G(I,J,JI,1)=ATPC4G(I,J,JI,1)*PAZ/RMS(J,1)/RMS(JI,1)
+        ATPC4G(I,J,JJ,1)=ATPC4G(I,J,JJ,1)*PAZ/RMS(J,1)/RMS(JJ,1)
+        ATPC4G(I,J,JK,1)=ATPC4G(I,J,JK,1)*PAZ/RMS(J,1)/RMS(JK,1)
+        ATPC4G(I,J,JL,1)=ATPC4G(I,J,JL,1)*PAZ/RMS(J,1)/RMS(JL,1)
+C                                                         
+        ATPC4G(I,J,JA,3)=ATPC4G(I,J,JA,3)*PAZ/RMS(J,3)/RMS(JA,3)
+        ATPC4G(I,J,JB,3)=ATPC4G(I,J,JB,3)*PAZ/RMS(J,3)/RMS(JB,3)
+        ATPC4G(I,J,JC,3)=ATPC4G(I,J,JC,3)*PAZ/RMS(J,3)/RMS(JC,3)
+        ATPC4G(I,J,JD,3)=ATPC4G(I,J,JD,3)*PAZ/RMS(J,3)/RMS(JD,3)
+        ATPC4G(I,J,JE,3)=ATPC4G(I,J,JE,3)*PAZ/RMS(J,3)/RMS(JE,3)
+        ATPC4G(I,J,JF,3)=ATPC4G(I,J,JF,3)*PAZ/RMS(J,3)/RMS(JF,3)
+        ATPC4G(I,J,JH,3)=ATPC4G(I,J,JH,3)*PAZ/RMS(J,3)/RMS(JH,3)
+        ATPC4G(I,J,JI,3)=ATPC4G(I,J,JI,3)*PAZ/RMS(J,3)/RMS(JI,3)
+        ATPC4G(I,J,JJ,3)=ATPC4G(I,J,JJ,3)*PAZ/RMS(J,3)/RMS(JJ,3)
+        ATPC4G(I,J,JK,3)=ATPC4G(I,J,JK,3)*PAZ/RMS(J,3)/RMS(JK,3)
+        ATPC4G(I,J,JL,3)=ATPC4G(I,J,JL,3)*PAZ/RMS(J,3)/RMS(JL,3)
+C                                                        
+        ATPC4G(I,J,JA,4)=ATPC4G(I,J,JA,4)*PAZ/RMS(J,4)/RMS(JA,4)
+        ATPC4G(I,J,JB,4)=ATPC4G(I,J,JB,4)*PAZ/RMS(J,4)/RMS(JB,4)
+        ATPC4G(I,J,JC,4)=ATPC4G(I,J,JC,4)*PAZ/RMS(J,4)/RMS(JC,4)
+        ATPC4G(I,J,JD,4)=ATPC4G(I,J,JD,4)*PAZ/RMS(J,4)/RMS(JD,4)
+        ATPC4G(I,J,JE,4)=ATPC4G(I,J,JE,4)*PAZ/RMS(J,4)/RMS(JE,4)
+        ATPC4G(I,J,JF,4)=ATPC4G(I,J,JF,4)*PAZ/RMS(J,4)/RMS(JF,4)
+        ATPC4G(I,J,JH,4)=ATPC4G(I,J,JH,4)*PAZ/RMS(J,4)/RMS(JH,4)
+        ATPC4G(I,J,JI,4)=ATPC4G(I,J,JI,4)*PAZ/RMS(J,4)/RMS(JI,4)
+        ATPC4G(I,J,JJ,4)=ATPC4G(I,J,JJ,4)*PAZ/RMS(J,4)/RMS(JJ,4)
+        ATPC4G(I,J,JK,4)=ATPC4G(I,J,JK,4)*PAZ/RMS(J,4)/RMS(JK,4)
+        ATPC4G(I,J,JL,4)=ATPC4G(I,J,JL,4)*PAZ/RMS(J,4)/RMS(JL,4)
+  104 CONTINUE
+C
+      CMTD='# DNS OF TURBULENT CHANNEL FLOW : '//CODE
+      CMTD2='# TURBULENT STATISTICS IN VELOCITY FIELD'
+      CPRM(1)='# STRM  W-W SPAN  TIMESTEP  REYNOLDS'
+      CPRM(2)='# X-LENGTH  Z-LENGTH     ALP       DX        DZ    DRA
+     &M FININUM'
+      CPRM(3)='#      UTAUB          UTAUT         UTAU_AVE'
+      CPRM(4)='#      UTAUB2         UTAUT2       UTAU_AVE2'
+      CPRM(5)='# J R DR RR DRR'
+      CMCR(1)='# Y STRM-1 STRM-2 STRM-3 STRM-P  T.P.CORR. Y+='
+      CPRM(33)='#====================================================
+     &=========='
+      CPRM(34)='# CALC.NUM.     CALC.TIME     AVE.NUM.     AVE.TIME'
+C
+C      OPEN(26)
+      WRITE(45,1010) CPRM(33)
+      WRITE(45,1010) CMTD
+      WRITE(45,1010) CMTD2
+      WRITE(45,1010) CPRM(33)
+      WRITE(45,1010) CPRM(34)
+      WRITE(45,1000) NUM,TIME,NAVE,AVETIM
+      WRITE(45,1010) CPRM(1)
+      WRITE(45,1020) IG,JG,KG,DT,RE
+      WRITE(45,1010) CPRM(2)
+      WRITE(45,1030) XL,ZL,ALP,DX,DZ,NDRAW,NFIN
+      WRITE(45,1010) CPRM(3)
+      WRITE(45,1050) AUTUB,AUTUT,AUTAU
+      WRITE(45,1010) CPRM(4)
+      WRITE(45,1050) AUTUB2,AUTUT2,AUTU2
+ 1000 FORMAT(I10,E18.10,I10,E18.10)
+ 1010 FORMAT(A71)
+ 1020 FORMAT(3I5,F10.5,F10.1)
+ 1030 FORMAT(5F10.5,I5,I10)
+ 1040 FORMAT(5F10.5)
+ 1050 FORMAT(3E15.6)
+C
+      WRITE(45,1010) CPRM(5)
+      DO 10 J=0,JG+1
+        WRITE(45,1060) J,R(J),DR(J),RR(J),DRR(J)
+   10 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JA)*PVISC
+      DO 59 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JA,1),ATPC2G(J,JA,2)
+     &                ,ATPC2G(J,JA,3),ATPC2G(J,JA,4)
+   59 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JB)*PVISC
+      DO 60 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JB,1),ATPC2G(J,JB,2)
+     &                ,ATPC2G(J,JB,3),ATPC2G(J,JB,4)
+   60 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JC)*PVISC
+      DO 61 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JC,1),ATPC2G(J,JC,2)
+     &                ,ATPC2G(J,JC,3),ATPC2G(J,JC,4)
+   61 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JD)*PVISC
+      DO 62 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JD,1),ATPC2G(J,JD,2)
+     &                ,ATPC2G(J,JD,3),ATPC2G(J,JD,4)
+   62 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JE)*PVISC
+      DO 63 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JE,1),ATPC2G(J,JE,2)
+     &                ,ATPC2G(J,JE,3),ATPC2G(J,JE,4)
+   63 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JF)*PVISC
+      DO 64 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JF,1),ATPC2G(J,JF,2)
+     &                ,ATPC2G(J,JF,3),ATPC2G(J,JF,4)
+   64 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JH)*PVISC
+      DO 65 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JH,1),ATPC2G(J,JH,2)
+     &                ,ATPC2G(J,JH,3),ATPC2G(J,JH,4)
+   65 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JI)*PVISC
+      DO 66 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JI,1),ATPC2G(J,JI,2)
+     &                ,ATPC2G(J,JI,3),ATPC2G(J,JI,4)
+   66 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JJ)*PVISC
+      DO 67 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JJ,1),ATPC2G(J,JJ,2)
+     &                ,ATPC2G(J,JJ,3),ATPC2G(J,JJ,4)
+   67 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JK)*PVISC
+      DO 68 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JK,1),ATPC2G(J,JK,2)
+     &                ,ATPC2G(J,JK,3),ATPC2G(J,JK,4)
+   68 CONTINUE
+C
+      WRITE(45,'(A45,F8.3)') CMCR(1),RR(JL)*PVISC
+      DO 69 J=1,JG
+        WRITE(45,1080) RR(J),ATPC2G(J,JL,1),ATPC2G(J,JL,2)
+     &                ,ATPC2G(J,JL,3),ATPC2G(J,JL,4)
+   69 CONTINUE
+C
+ 1060 FORMAT(I3,4E14.6)
+ 1070 FORMAT(4E14.6)
+ 1080 FORMAT(5E14.6)
+ 1090 FORMAT(3E14.6)
+ 1100 FORMAT(I3,5E14.6)
+ 1110 FORMAT(6E12.4)
+ 1120 FORMAT(2E14.6)
+C
+      DO 300 J=1,JG
+      DO 300 I=1,IG,2
+        WRITE(100,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JA,1),ATPC4G(I,J,JA,2)
+     &,ATPC4G(I,J,JA,3),ATPC4G(I,J,JA,4)
+  300 CONTINUE
+C
+      DO 301 J=1,JG
+      DO 301 I=1,IG,2
+        WRITE(101,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JB,1),ATPC4G(I,J,JB,2)
+     &,ATPC4G(I,J,JB,3),ATPC4G(I,J,JB,4)
+  301 CONTINUE
+C
+      DO 302 J=1,JG
+      DO 302 I=1,IG,2
+        WRITE(102,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JC,1),ATPC4G(I,J,JC,2)
+     &,ATPC4G(I,J,JC,3),ATPC4G(I,J,JC,4)
+  302 CONTINUE
+C
+      DO 303 J=1,JG
+      DO 303 I=1,IG,2
+        WRITE(103,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JD,1),ATPC4G(I,J,JD,2)
+     &,ATPC4G(I,J,JD,3),ATPC4G(I,J,JD,4)
+  303 CONTINUE
+C
+      DO 304 J=1,JG
+      DO 304 I=1,IG,2
+        WRITE(104,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JE,1),ATPC4G(I,J,JE,2)
+     &,ATPC4G(I,J,JE,3),ATPC4G(I,J,JE,4)
+  304 CONTINUE
+C
+      DO 305 J=1,JG
+      DO 305 I=1,IG,2
+        WRITE(105,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JF,1),ATPC4G(I,J,JF,2)
+     &,ATPC4G(I,J,JF,3),ATPC4G(I,J,JF,4)
+  305 CONTINUE
+C
+      DO 306 J=1,JG
+      DO 306 I=1,IG,2
+        WRITE(106,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JH,1),ATPC4G(I,J,JH,2)
+     &,ATPC4G(I,J,JH,3),ATPC4G(I,J,JH,4)
+  306 CONTINUE
+C
+      DO 307 J=1,JG
+      DO 307 I=1,IG,2
+        WRITE(107,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JI,1),ATPC4G(I,J,JI,2)
+     &,ATPC4G(I,J,JI,3),ATPC4G(I,J,JI,4)
+  307 CONTINUE
+C
+      DO 308 J=1,JG
+      DO 308 I=1,IG,2
+        WRITE(108,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JJ,1),ATPC4G(I,J,JJ,2)
+     &,ATPC4G(I,J,JJ,3),ATPC4G(I,J,JJ,4)
+  308 CONTINUE
+C
+      DO 309 J=1,JG
+      DO 309 I=1,IG,2
+        WRITE(109,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JK,1),ATPC4G(I,J,JK,2)
+     &,ATPC4G(I,J,JK,3),ATPC4G(I,J,JK,4)
+  309 CONTINUE
+C
+      DO 310 J=1,JG
+      DO 310 I=1,IG,2
+        WRITE(110,1110) DBLE(I-IG/2)*DX*2.0D0, RR(J)*2.0D0
+     &,ATPC4G(I,J,JL,1),ATPC4G(I,J,JL,2)
+     &,ATPC4G(I,J,JL,3),ATPC4G(I,J,JL,4)
+  310 CONTINUE
+C
+c      DO 411 I=1,IG,2
+c        WRITE(151,'(E15.6)') DBLE(I)*DX
+c  411 CONTINUE
+cC
+c      DO 412 J=1,JG,2
+c        WRITE(152,'(E15.6)') RR(J)
+c  412 CONTINUE
+C
+      RETURN                                                         
+      END                                                            
+C
+C====================================================================
+C     PROGRAMED BY T.TSUKAHARA
+      SUBROUTINE CORRZERO
+C     2004.09.29
+C     REVISED ON 2004.09.27
+C====================================================================
+C
+      INCLUDE './INCFILE/INCINIT96'
+      INCLUDE './INCFILE/INXINDX96'
+      INCLUDE './INCFILE/INXSUBP96'                                            
+C
+C----LOCAL VARIABLES-------------------------------------------         
+C
+      INCLUDE './INCFILE/INCDATA'
+      DIMENSION ATPC2(JG,JG,4),ATPC4(IG,JG,JG,4)                        
+C
+C----GLOBAL VARIABLES------------------------------------------         
+C                                                                       
+      COMMON /COR2/ ATPC2G(JG,JG,4),ATPC4G(IG,JG,JG,4)
+C                                                                       
+C----COMBINATION------------------------------------------------        
+C                                                                       
+      EQUIVALENCE (ATPC2G,ATPC2),(ATPC4G,ATPC4)
+C                                                                       
+C----PARALLEL DEFINITION----------------------------------------        
+C                                                                       
+!XOCL INDEX PARTITION ISEO=ISE(OVERLAP=(1,1))                           
+C
+!XOCL LOCAL ATPC2(:,/ISE,:),ATPC4(:,:,/ISE,:)
+C
+!XOCL GLOBAL ATPC2G, ATPC4G
+C
+C=================================================================      
+C
+!XOCL SPREAD DO /ISE                          
+      DO 10 J=1,JG                         
+      DO 10 J2=1,JG                        
+         ATPC2(J2,J,1)=0.0D0
+         ATPC2(J2,J,2)=0.0D0
+         ATPC2(J2,J,3)=0.0D0
+         ATPC2(J2,J,4)=0.0D0
+   10 CONTINUE                                
+!XOCL END SPREAD                              
+C
+!XOCL SPREAD DO /ISE                          
+      DO 11 J=1,JG                         
+      DO 11 J2=1,JG                        
+      DO 11 I=1,IG                        
+         ATPC4(I,J2,J,1)=0.0D0
+         ATPC4(I,J2,J,2)=0.0D0
+         ATPC4(I,J2,J,3)=0.0D0
+         ATPC4(I,J2,J,4)=0.0D0
+   11 CONTINUE                                
+!XOCL END SPREAD                              
+C
+      RETURN
+      END
+C
+C====================================================================
+C     PROGRAMED BY T.TSUKAHARA
+      SUBROUTINE CORRIN
+C     2004.09.27
+C     REVISED ON 2004.09.27
+C====================================================================
+C
+      INCLUDE './INCFILE/INCINIT96'
+      INCLUDE './INCFILE/INXINDX96'
+C
+C----LOCAL VARIABLES-------------------------------------------         
+C
+      INCLUDE './INCFILE/INCDATA'
+C
+C----GLOBAL VARIABLES------------------------------------------         
+C                                                                       
+      COMMON /COR2/ ATPC2G(JG,JG,4),ATPC4G(IG,JG,JG,4)
+C
+C----PARALLEL DEFINITION----------------------------------------        
+C
+!XOCL GLOBAL ATPC2G, ATPC4G
+C
+C=================================================================      
+C
+C      OPEN(46)                                                          
+      READ(46) NUM,TIME,NAVE,AVETIM
+      READ(46) ATPC2G,ATPC4G                                   
+C      CLOSE(46)                                                         
+C
+      RETURN
+      END
+C
+C====================================================================
+C     PROGRAMED BY T.TSUKAHARA
+      SUBROUTINE CORROUT
+C     2004.09.27
+C     REVISED ON 2004.09.27
+C====================================================================
+C
+      INCLUDE './INCFILE/INCINIT96'
+      INCLUDE './INCFILE/INXINDX96'
+C
+C----LOCAL VARIABLES-------------------------------------------         
+C
+      INCLUDE './INCFILE/INCDATA'
+C
+C----GLOBAL VARIABLES------------------------------------------         
+C                                                                       
+      COMMON /COR2/ ATPC2G(JG,JG,4),ATPC4G(IG,JG,JG,4)
+C
+C----PARALLEL DEFINITION----------------------------------------        
+C
+!XOCL GLOBAL ATPC2G, ATPC4G
+C
+C=================================================================      
+C
+C      OPEN(47)                                                          
+      WRITE(47) NUM,TIME,NAVE,AVETIM
+      WRITE(47) ATPC2G,ATPC4G                                   
+C      CLOSE(47)                                                         
+C
+      RETURN
+      END
+C

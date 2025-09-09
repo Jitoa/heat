@@ -1,0 +1,4 @@
+      COMMON /MESH/ R(-1:LY+4),RR(-1:LY+4),DR(-1:LY+4),DRR(-1:LY+4)     
+      COMMON /COE1/ PDX,PDZ,PDX2,PDZ2,PRE                               
+      COMMON /COE2/ PDR(0:LY+2),PDRR(0:LY+2),DR2(0:LY+2),DRR2(0:LY+2)   
+     &             ,PDR2(0:LY+2),PDR3(0:LY+2),PDRR3(0:LY+2)             

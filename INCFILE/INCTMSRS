@@ -1,0 +1,503 @@
+C====================================================================  
+C     TIME SERIES (VELOCITY FIELD)                                     
+C     PROGRAMED BY T.TSUKAHARA                                         
+      SUBROUTINE TMSRSU                                                
+C     2004.08.08                                                       
+C     REVISED ON 2005.03.01                                            
+C     REVISED ON 2005.09.07                                            
+C====================================================================  
+C                                                                      
+      INCLUDE './INCFILE/INCINIT96'                                      
+      INCLUDE './INCFILE/INCDATA'                                        
+      INCLUDE './INCFILE/INCMESH'                                        
+C                                                                      
+C----LOCAL VARIABLES-------------------------------------------        
+C                                                                      
+      DIMENSION U(-4:IG+4,-2:JG+2,-4:KG+4,3)                           
+      DIMENSION UT(-4:IG+4,-2:JG+2,-4:KG+4,3)                          
+C                                                                      
+      DIMENSION P(-3:IG+3,-2:JG+2,-3:KG+3)                             
+      DIMENSION AU(-1:JG+2),AV(-1:JG+2),AW(-1:JG+2),AP(-1:JG+2)        
+C                                                                      
+C----GLOBAL VARIABLES------------------------------------------        
+C                                                                      
+      COMMON /VELO/ UG(-4:IG+4,-2:JG+2,-4:KG+4,3)                      
+      COMMON /TEMP/ UTG(-4:IG+4,-2:JG+2,-4:KG+4,3)                     
+      COMMON /SCAL/ PG(-3:IG+3,-2:JG+2,-3:KG+3)                        
+      COMMON /MEAN/ AUG(-1:JG+2),AVG(-1:JG+2)                          
+     &             ,AWG(-1:JG+2),APG(-1:JG+2)                          
+C                                                                      
+C----COMBINATION------------------------------------------------       
+C                                                                      
+      EQUIVALENCE (UG,U),(UTG,UT),(PG,P)                               
+      EQUIVALENCE (AUG,AU),(AVG,AV),(AWG,AW),(APG,AP)                  
+C                                                                      
+C=================================================================     
+C                                                                      
+      DO 10 J=1,JG                                                     
+        AU(J)=0.0D0                                                    
+        AV(J)=0.0D0                                                    
+        AW(J)=0.0D0                                                    
+        AP(J)=0.0D0                                                    
+   10 CONTINUE                                                         
+C                                                                      
+!$OMP PARALLEL DO PRIVATE(I)                                            
+      DO 12 K=1,KG                                                   
+      DO 12 I=1,IG                                                   
+        U(I,0,K,2)=0.0D0                                             
+   12 CONTINUE                                                       
+!$OMP PARALLEL DO PRIVATE(I)                                            
+      DO 13 K=1,KG                                                   
+      DO 13 I=1,IG                                                   
+        U(I,JG,K,2)=0.0D0                                            
+   13 CONTINUE                                                       
+C----------------------------------------------------                  
+      DOOP=1.0D0/DBLE(IG*KG)                                           
+C-------------------------------------- PLANE AVE.                     
+!$OMP PARALLEL DO PRIVATE(I,K)                                            
+      DO 20 J=1,JG                                                     
+      DO 20 K=1,KG                                                     
+      DO 20 I=1,IG                                                     
+        AU(J)=U(I,J,K,1)+AU(J)                                         
+        AV(J)=U(I,J,K,2)+AV(J)                                         
+        AW(J)=U(I,J,K,3)+AW(J)                                         
+        AP(J)=P(I,J,K)+AP(J)                                           
+   20 CONTINUE                                                         
+C                                                                      
+      DO 21 J=1,JG                                                     
+        AU(J)=AU(J)*DOOP                                               
+        AV(J)=AV(J)*DOOP                                               
+        AW(J)=AW(J)*DOOP                                               
+        AP(J)=AP(J)*DOOP                                               
+   21 CONTINUE                                                         
+C                                                                      
+      AU(  -1)=-AU(2)                                               
+      AV(  -1)= AV(1)                                               
+      AW(  -1)=-AW(2)                                               
+      AU(   0)=-AU(1)                                               
+      AV(   0)= 0.0D0                                               
+      AW(   0)=-AW(1)                                               
+      AP(   0)= AP(1)                                               
+      AV(  JG)= 0.0D0                                               
+      AU(JG+1)=-AU(JG)                                              
+      AV(JG+1)= AV(JG-1)                                            
+      AW(JG+1)=-AW(JG)                                              
+      AP(JG+1)= AP(JG)                                              
+      AU(JG+2)=-AU(JG-1)                                            
+      AW(JG+2)=-AW(JG-1)                                            
+C----------------------------------------------------                  
+C========================= UT ZERO-CLEAR                               
+!$OMP PARALLEL DO PRIVATE(I,K)                                            
+      DO 24 J=-2,JG+2                                                  
+      DO 24 K=-4,KG+4                                                  
+      DO 24 I=-4,IG+4                                                  
+        UT(I,J,K,1)=0.0D0                                              
+        UT(I,J,K,2)=0.0D0                                              
+        UT(I,J,K,3)=0.0D0                                              
+   24 CONTINUE                                                         
+C                                                                      
+C-------------------------------------- U',V',W'                       
+!$OMP PARALLEL DO PRIVATE(I,K)                                            
+      DO 40 J=-1,JG+2                                                  
+      DO 40 K=-1,KG+2                                                  
+      DO 40 I=-1,IG+2                                                  
+        UT(I,J,K,1)=U(I,J,K,1)-AU(J)                                   
+        UT(I,J,K,2)=((U(I,J,K,2)-AV(J))+(U(I,J-1,K,2)-AV(J-1)))*0.5D0    
+        UT(I,J,K,3)=U(I,J,K,3)-AW(J)                                   
+   40 CONTINUE                                                         
+C                                                                      
+C----------------------------------------------------------------------
+C                                                                      
+      JA2= 1  !Y+= 0.09 FIRST POINT FROM THE WALL                        
+      JB2=16  !Y+= 5.36                                                  
+      JC2=22  !Y+=15.59                                                  
+      JD2=36  !Y+=31.24 MID-HEIGHT                                       
+      JE2=48  !Y+=62.56 CHANNEL CENTER                                   
+C--------------POINT_01-05                                             
+      OPEN(51,ACCESS='APPEND')                                          
+      OPEN(52,ACCESS='APPEND')                                          
+      OPEN(53,ACCESS='APPEND')                                          
+C
+      WRITE(51,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*1/8,1)                                           
+     &,UT(IG/2,JB2,KG*1/8,1)                                           
+     &,UT(IG/2,JC2,KG*1/8,1)                                           
+     &,UT(IG/2,JD2,KG*1/8,1)                                           
+     &,UT(IG/2,JE2,KG*1/8,1)                                           
+C                                                                      
+      WRITE(52,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*1/8,2)                                           
+     &,UT(IG/2,JB2,KG*1/8,2)                                           
+     &,UT(IG/2,JC2,KG*1/8,2)                                           
+     &,UT(IG/2,JD2,KG*1/8,2)                                           
+     &,UT(IG/2,JE2,KG*1/8,2)                                           
+C                                                                      
+      WRITE(53,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*1/8,3)                                           
+     &,UT(IG/2,JB2,KG*1/8,3)                                           
+     &,UT(IG/2,JC2,KG*1/8,3)                                           
+     &,UT(IG/2,JD2,KG*1/8,3)                                           
+     &,UT(IG/2,JE2,KG*1/8,3)                                           
+C                                                                      
+      CLOSE(51)
+      CLOSE(52)
+      CLOSE(53)
+C--------------POINT_06-10                                             
+      OPEN(54,ACCESS='APPEND')                                          
+      OPEN(55,ACCESS='APPEND')                                          
+      OPEN(56,ACCESS='APPEND')                                          
+C
+      WRITE(54,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*3/8,1)                                           
+     &,UT(IG/2,JB2,KG*3/8,1)                                           
+     &,UT(IG/2,JC2,KG*3/8,1)                                           
+     &,UT(IG/2,JD2,KG*3/8,1)                                           
+     &,UT(IG/2,JE2,KG*3/8,1)                                           
+C                                                                      
+      WRITE(55,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*3/8,2)                                           
+     &,UT(IG/2,JB2,KG*3/8,2)                                           
+     &,UT(IG/2,JC2,KG*3/8,2)                                           
+     &,UT(IG/2,JD2,KG*3/8,2)                                           
+     &,UT(IG/2,JE2,KG*3/8,2)                                           
+C                                                                      
+      WRITE(56,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*3/8,3)                                           
+     &,UT(IG/2,JB2,KG*3/8,3)                                           
+     &,UT(IG/2,JC2,KG*3/8,3)                                           
+     &,UT(IG/2,JD2,KG*3/8,3)                                           
+     &,UT(IG/2,JE2,KG*3/8,3)                                           
+C                                                                      
+      CLOSE(54)
+      CLOSE(55)
+      CLOSE(56)
+C--------------POINT_11-15                                             
+      OPEN(57,ACCESS='APPEND')                                          
+      OPEN(58,ACCESS='APPEND')                                          
+      OPEN(59,ACCESS='APPEND')                                          
+C
+      WRITE(57,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*5/8,1)                                           
+     &,UT(IG/2,JB2,KG*5/8,1)                                           
+     &,UT(IG/2,JC2,KG*5/8,1)                                           
+     &,UT(IG/2,JD2,KG*5/8,1)                                           
+     &,UT(IG/2,JE2,KG*5/8,1)                                           
+C                                                                      
+      WRITE(58,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*5/8,2)                                           
+     &,UT(IG/2,JB2,KG*5/8,2)                                           
+     &,UT(IG/2,JC2,KG*5/8,2)                                           
+     &,UT(IG/2,JD2,KG*5/8,2)                                           
+     &,UT(IG/2,JE2,KG*5/8,2)                                           
+C                                                                      
+      WRITE(59,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*5/8,3)                                           
+     &,UT(IG/2,JB2,KG*5/8,3)                                           
+     &,UT(IG/2,JC2,KG*5/8,3)                                           
+     &,UT(IG/2,JD2,KG*5/8,3)                                           
+     &,UT(IG/2,JE2,KG*5/8,3)                                           
+C                                                                      
+      CLOSE(57)
+      CLOSE(58)
+      CLOSE(59)
+C--------------POINT_16-20                                             
+      OPEN(60,ACCESS='APPEND')                                          
+      OPEN(61,ACCESS='APPEND')                                          
+      OPEN(62,ACCESS='APPEND')                                          
+C
+      WRITE(60,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*7/8,1)                                           
+     &,UT(IG/2,JB2,KG*7/8,1)                                           
+     &,UT(IG/2,JC2,KG*7/8,1)                                           
+     &,UT(IG/2,JD2,KG*7/8,1)                                           
+     &,UT(IG/2,JE2,KG*7/8,1)                                           
+C                                                                      
+      WRITE(61,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*7/8,2)                                           
+     &,UT(IG/2,JB2,KG*7/8,2)                                           
+     &,UT(IG/2,JC2,KG*7/8,2)                                           
+     &,UT(IG/2,JD2,KG*7/8,2)                                           
+     &,UT(IG/2,JE2,KG*7/8,2)                                           
+C                                                                      
+      WRITE(62,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*7/8,3)                                           
+     &,UT(IG/2,JB2,KG*7/8,3)                                           
+     &,UT(IG/2,JC2,KG*7/8,3)                                           
+     &,UT(IG/2,JD2,KG*7/8,3)                                           
+     &,UT(IG/2,JE2,KG*7/8,3)                                           
+C                                                                      
+      CLOSE(60)
+      CLOSE(61)
+      CLOSE(62)
+C--------------                                                        
+C                                                                      
+c      IF(MOD(NN,100).EQ.0) THEN                                       
+cC                                                                     
+c      NNN=NN/100                                                      
+c      NONE=MOD(NNN,10)                                                
+c      NTEN=MOD(NNN,100)-MOD(NNN,10)                                   
+c      NHUN=MOD(NNN,1000)-MOD(NNN,100)                                 
+c      NUMM=CHAR(48+NHUN/100)//CHAR(48+NTEN/10)//CHAR(48+NONE)         
+cC                                                                     
+c      OPEN(91, FILE='/work/p73182a/tsuka/ch080/uxz_'//NUMM//'.dat'    
+c     &, STATUS='UNKNOWN')                                             
+c      DO 910 K=1,KG,2                                                 
+c      DO 910 I=1,IG,2                                                 
+c      WRITE(91,'(3E14.6)') UTG(I,JA,K,1), UTG(I,JD,K,1), UTG(I,JE,K,1)
+c  910 CONTINUE                                                        
+c      CLOSE(91)                                                       
+cC                                                                     
+c      OPEN(92, FILE='/G/kyu-vpp-pe36/usr2/p73182a/tsuka/CHA080/TEXTDAT
+c     &time_uxz_040_'//NUMM//'.dat'                                    
+c     &, STATUS='UNKNOWN')                                             
+c      DO 920 K=1,KG,2                                                 
+c      DO 920 I=1,IG,2                                                 
+c      WRITE(92,'(E14.6)') UTG(I,JD,K,1)                               
+c  920 CONTINUE                                                        
+c      CLOSE(92)                                                       
+cC                                                                     
+c      OPEN(93, FILE='/G/kyu-vpp-pe36/usr2/p73182a/tsuka/CHA080/TEXTDAT
+c     &time_uxz_080_'//NUMM//'.dat'                                    
+c     &, STATUS='UNKNOWN')                                             
+c      DO 930 K=1,KG,2                                                 
+c      DO 930 I=1,IG,2                                                 
+c      WRITE(93,'(E14.6)') UTG(I,JE,K,1)                               
+c  930 CONTINUE                                                        
+c      CLOSE(93)                                                       
+cC                                                                     
+c      OPEN(94, FILE='/work/p73182a/tsuka/ch080/uzy_'//NUMM//'.dat'    
+c     &, STATUS='UNKNOWN')                                             
+c      DO 940 J=1,JG                                                   
+c      DO 940 K=1,KG/2                                                 
+c      WRITE(94,'(3E14.6)')                                            
+c     & UTG(IG/2,J,K,1), UTG(IG/2,J,K,2), UTG(IG/2,J,K,3)              
+c  940 CONTINUE                                                        
+c      CLOSE(94)                                                       
+cC                                                                     
+c      OPEN(95, FILE='/work/p73182a/tsuka/ch080/uxy_'//NUMM//'.dat'    
+c     &, STATUS='UNKNOWN')                                             
+c      DO 950 J=1,JG                                                   
+c      DO 950 I=1,IG/2                                                 
+c      WRITE(95,'(3E14.6)')                                            
+c     & UG(I,J,KG/2,1), UTG(I,J,KG/2,1), UTG(I,J,KG/2,2)               
+c  950 CONTINUE                                                        
+c      CLOSE(95)                                                       
+cC                                                                     
+c      ENDIF                                                           
+C--------------                                                        
+      RETURN                                                           
+      END                                                              
+C                                                                      
+C====================================================================  
+C     TIME SERIES (TEMPERATURE FIELD)                                  
+C     PROGRAMED BY T.TSUKAHARA                                         
+      SUBROUTINE TMSRST                                                
+C                                                                      
+C     2004.08.08                                                       
+C     REVISED ON 2005.03.01                                            
+C     REVISED ON 2005.09.07                                            
+C======================================================================
+C                                                                      
+      INCLUDE './INCFILE/INCINIT96'                                      
+      INCLUDE './INCFILE/INCDATA'                                        
+      INCLUDE './INCFILE/INCMESH'                                        
+C                                                                      
+C---  LOCAL VARIABLES  ------------------------------------------------
+C                                                                      
+      DIMENSION UT(-4:IG+4,-2:JG+2,-4:KG+4,3)                          
+C                                                                      
+      DIMENSION T1(-3:IG+3,-2:JG+2,-3:KG+3)                            
+      DIMENSION T2(-3:IG+3,-2:JG+2,-3:KG+3)                            
+      DIMENSION EAT1(-2:JG+2)                                          
+      DIMENSION EAT2(-2:JG+2)                                          
+C                                                                      
+C---  GLOBAL  VARIABLES  ----------------------------------------------
+C                                                                      
+      COMMON /TEMP/ UTG(-4:IG+4,-2:JG+2,-4:KG+4,3)                     
+C                                                                      
+      COMMON /TEM1/ T1G(-3:IG+3,-2:JG+2,-3:KG+3)                       
+      COMMON /TEM2/ T2G(-3:IG+3,-2:JG+2,-3:KG+3)                       
+      COMMON /ETM1/ EAT1G(-2:JG+2)                                     
+      COMMON /ETM2/ EAT2G(-2:JG+2)                                     
+C                                                                      
+C---  COMBINATION  ----------------------------------------------------
+C                                                                      
+      EQUIVALENCE (UTG,UT)                                             
+C                                                                      
+      EQUIVALENCE (T1G,T1),(T2G,T2)                                    
+      EQUIVALENCE (EAT1G,EAT1),(EAT2G,EAT2)                            
+C                                                                      
+C======================================================================
+C                                                                      
+      DO 10 J=-2,JG+2                                                  
+       EAT1(J)=0.0D0                                                   
+       EAT2(J)=0.0D0                                                   
+   10 CONTINUE                                                         
+C                                                                      
+!$OMP PARALLEL DO PRIVATE(I,K)                                            
+      DO 20 J=-2,JG+2                                                  
+      DO 20 K=1,KG                                                     
+      DO 20 I=1,IG                                                     
+       EAT1(J)=EAT1(J)+T1(I,J,K)                                       
+       EAT2(J)=EAT2(J)+T2(I,J,K)                                       
+   20 CONTINUE                                                         
+C                                                                      
+      DOOP=1.0D0/DBLE(IG*KG)                                           
+      DO 30 J=-2,JG+2                                                  
+       EAT1(J)=EAT1(J)*DOOP                                             
+       EAT2(J)=EAT2(J)*DOOP                                             
+   30 CONTINUE                                                         
+C                                                                      
+C========================= UT ZERO-CLEAR                               
+!$OMP PARALLEL DO PRIVATE(I,K)                                            
+      DO 140 J=-2,JG+2                                                 
+      DO 140 K=-4,KG+4                                                 
+      DO 140 I=-4,IG+4                                                 
+        UT(I,J,K,1)=0.0D0                                              
+        UT(I,J,K,2)=0.0D0                                              
+  140 CONTINUE                                                         
+C                                                                      
+C-------------------------------------- T'                             
+      DO 40 J=-1,JG+2                                                  
+      DO 40 K=-1,KG+2                                                  
+      DO 40 I=-1,IG+2                                                  
+        UT(I,J,K,1)=T1(I,J,K)-EAT1(J)                                  
+        UT(I,J,K,2)=T2(I,J,K)-EAT2(J)                                  
+   40 CONTINUE                                                         
+C                                                                      
+C----------------------------------------------------------------------
+C                                                                      
+      JA2= 1  !Y+= 0.09 FIRST POINT FROM THE WALL                        
+      JB2=16  !Y+= 5.36                                                  
+      JC2=22  !Y+=15.59                                                  
+      JD2=36  !Y+=31.24 MID-HEIGHT                                       
+      JE2=48  !Y+=62.56 CHANNEL CENTER                                   
+C--------------POINT_01-05                                             
+      OPEN(71,ACCESS='APPEND')                                          
+      OPEN(72,ACCESS='APPEND')                                          
+C
+      WRITE(71,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*1/8,1)                                           
+     &,UT(IG/2,JB2,KG*1/8,1)                                           
+     &,UT(IG/2,JC2,KG*1/8,1)                                           
+     &,UT(IG/2,JD2,KG*1/8,1)                                           
+     &,UT(IG/2,JE2,KG*1/8,1)                                           
+C                                                                      
+      WRITE(72,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*1/8,2)                                           
+     &,UT(IG/2,JB2,KG*1/8,2)                                           
+     &,UT(IG/2,JC2,KG*1/8,2)                                           
+     &,UT(IG/2,JD2,KG*1/8,2)                                           
+     &,UT(IG/2,JE2,KG*1/8,2)                                           
+C                                                                      
+      CLOSE(71)
+      CLOSE(72)
+C--------------POINT_06-10                                             
+      OPEN(73,ACCESS='APPEND')                                          
+      OPEN(74,ACCESS='APPEND')                                          
+C
+      WRITE(73,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*3/8,1)                                           
+     &,UT(IG/2,JB2,KG*3/8,1)                                           
+     &,UT(IG/2,JC2,KG*3/8,1)                                           
+     &,UT(IG/2,JD2,KG*3/8,1)                                           
+     &,UT(IG/2,JE2,KG*3/8,1)                                           
+C                                                                      
+      WRITE(74,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*3/8,2)                                           
+     &,UT(IG/2,JB2,KG*3/8,2)                                           
+     &,UT(IG/2,JC2,KG*3/8,2)                                           
+     &,UT(IG/2,JD2,KG*3/8,2)                                           
+     &,UT(IG/2,JE2,KG*3/8,2)                                           
+C                                                                      
+      CLOSE(73)
+      CLOSE(74)
+C--------------POINT_11-15                                             
+      OPEN(75,ACCESS='APPEND')                                          
+      OPEN(76,ACCESS='APPEND')                                          
+C
+      WRITE(75,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*5/8,1)                                           
+     &,UT(IG/2,JB2,KG*5/8,1)                                           
+     &,UT(IG/2,JC2,KG*5/8,1)                                           
+     &,UT(IG/2,JD2,KG*5/8,1)                                           
+     &,UT(IG/2,JE2,KG*5/8,1)                                           
+C                                                                      
+      WRITE(76,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*5/8,2)                                           
+     &,UT(IG/2,JB2,KG*5/8,2)                                           
+     &,UT(IG/2,JC2,KG*5/8,2)                                           
+     &,UT(IG/2,JD2,KG*5/8,2)                                           
+     &,UT(IG/2,JE2,KG*5/8,2)                                           
+C                                                                      
+      CLOSE(75)
+      CLOSE(76)
+C--------------POINT_16-20                                             
+      OPEN(77,ACCESS='APPEND')                                          
+      OPEN(78,ACCESS='APPEND')                                          
+C
+      WRITE(77,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*7/8,1)                                           
+     &,UT(IG/2,JB2,KG*7/8,1)                                           
+     &,UT(IG/2,JC2,KG*7/8,1)                                           
+     &,UT(IG/2,JD2,KG*7/8,1)                                           
+     &,UT(IG/2,JE2,KG*7/8,1)                                           
+C                                                                      
+      WRITE(78,'(6E15.7)') TIME                                        
+     &,UT(IG/2,JA2,KG*7/8,2)                                           
+     &,UT(IG/2,JB2,KG*7/8,2)                                           
+     &,UT(IG/2,JC2,KG*7/8,2)                                           
+     &,UT(IG/2,JD2,KG*7/8,2)                                           
+     &,UT(IG/2,JE2,KG*7/8,2)                                           
+C                                                                      
+      CLOSE(77)
+      CLOSE(78)
+C--------------                                                        
+C                                                                      
+c      IF(MOD(NN,100).EQ.0) THEN                                       
+cC                                                                     
+c      NNN=NN/100                                                      
+c      NONE=MOD(NNN,10)                                                
+c      NTEN=MOD(NNN,100)-MOD(NNN,10)                                   
+c      NHUN=MOD(NNN,1000)-MOD(NNN,100)                                 
+c      NUMM=CHAR(48+NHUN/100)//CHAR(48+NTEN/10)//CHAR(48+NONE)         
+cC                                                                     
+c      OPEN(96, FILE='/work/p73182a/tsuka/ch080/t1xz_'//NUMM//'.dat'   
+c     &, STATUS='UNKNOWN')                                             
+c      DO 960 K=1,KG,2                                                 
+c      DO 960 I=1,IG,2                                                 
+c      WRITE(96,'(6E14.6)') UTG(I,JA,K,1), UTG(I,JD,K,1), UTG(I,JE,K,1)
+c     &,                    UTG(I,JA,K,2), UTG(I,JD,K,2), UTG(I,JE,K,2)
+c  960 CONTINUE                                                        
+c      CLOSE(96)                                                       
+C                                                                      
+c      OPEN(97, FILE='/work/p73182a/tsuka/ch080/t2xz_'//NUMM//'.dat'   
+c     &, STATUS='UNKNOWN')                                             
+c      DO 970 K=1,KG,2                                                 
+c      DO 970 I=1,IG,2                                                 
+c      WRITE(97,'(3E14.6)') UTG(I,JA,K,2), UTG(I,JD,K,2), UTG(I,JE,K,2)
+c  970 CONTINUE                                                        
+c      CLOSE(97)                                                       
+C                                                                      
+c      OPEN(98, FILE='/work/p73182a/tsuka/ch080/t12zy_'//NUMM//'.dat'  
+c     &, STATUS='UNKNOWN')                                             
+c      DO 980 J=1,JG                                                   
+c      DO 980 K=1,KG/2                                                 
+c      WRITE(98,'(3E14.6)')                                            
+c     & UTG(IG/2,J,K,1), UTG(IG/2,J,K,2)                               
+c  980 CONTINUE                                                        
+c      CLOSE(98)                                                       
+cC                                                                     
+c      OPEN(99, FILE='/work/p73182a/tsuka/ch080/t12xy_'//NUMM//'.dat'  
+c     &, STATUS='UNKNOWN')                                             
+c      DO 990 J=1,JG                                                   
+c      DO 990 I=1,IG/2                                                 
+c      WRITE(99,'(3E14.6)')                                            
+c     & UG(I,J,KG/2,1), UTG(I,J,KG/2,2)                                
+c  990 CONTINUE                                                        
+c      CLOSE(99)                                                       
+cC                                                                     
+c      ENDIF                                                           
+C--------------                                                        
+      RETURN                                                           
+      END                                                              

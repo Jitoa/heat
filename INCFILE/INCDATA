@@ -1,0 +1,3 @@
+      COMMON /DAT1/ RE,DT,DX,DZ                                         
+      COMMON /DAT2/ XL,ZL,TIME,TI,R1,R2,ALP                             
+      COMMON /STEP/ NDRAW,NFIN,NUM                                      
