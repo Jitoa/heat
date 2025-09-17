@@ -283,3 +283,89 @@ AUQUAD(J,10): ⟨p'^4⟩ (PPPP)<br>
 ## AQAUV(J,1..4)
 高さ J における u′v′ の象限別（Q1,Q2,Q3,Q4）の面・時間平均寄与量。
 
+## 出力ファイル
+
+## fort.11
+出力元：ch060owv2.f 内の SUBROUTINE AVEOUT<br>
+形式：非フォーマット（unformatted）バイナリ。各 WRITE(11) は1レコード<br>
+レコード順（主な中身）<br>
+スカラ: NFIN, NAVE, AVETIM, AUTUB, AUTUT, AUTUB2, AUTUT2<br>
+y方向プロファイル群（配列長は主に JG）:<br>
+AAPG, AAWG, AAUG（平均）、APRMSG, AWRMSG, AURMSG（RMS）<br>
+ATSSTG, ARESTG（せん断・レイノルズ応力の関連量）<br>
+AU11G, AU22G, AU33G, AU12G, AU13G, AU23G（レイノルズ応力成分）<br>
+乱流運動エネルギー・応力の収支項: AAKG, APKG, ATAKG, APIKG, APDKG, ADKG, AEKG, … 同様に 11/22/33/12 成分一式（AP11G, ATA11G, API11G, AD11G, AE11G, APS11G など。22,33,12も同様）<br>
+2D/3D配列:<br>
+ASTRMG(IG,JG,5), ASPANG(KG,JG,5)（スペクトル/角度分布）<br>
+ATPC1G(IG,JG,4), ATPC3G(KG,JG,4)（相関/コスペクトル）<br>
+その他: OMGG(JG,3)（渦度RMS）、SKEWUVG/FLATUVG、AUTRIG/AUQUADG/AQAUVG、ANQAUVG、AAINV2G/AAINV3G<br>
+
+## fort.13
+出力元：INCFILE/TFIELD_CHOMP 内の温度場の時間平均・収支出力ブロック（TAVEOUT 相当）<br>
+形式：非フォーマット（unformatted）バイナリ<br>
+主な中身（配列中心）<br>
+NSTCS, STCSTM（計算ステップ数・平均時間）<br>
+TAGU/TAGV/TAGW, TAGP（平均？のタグ配列）、TAT1G/TAT2G（温度の平均など）<br>
+UGRMS/VGRMS/WGRMS, PGRMS, TRMS1G/TRMS2G（速度・圧力・温度のRMS）<br>
+FLXUT1G/FLXVT1G/FLXWT1G, FLXUT2G/FLXVT2G/FLXWT2G（温度フラックス）<br>
+温度分散/熱収支の各項（T1,T2の1次/2次？に分かれたPRO/DIS/TDF/RMD/TPG/PDF などが U,V,W,T 向けにセットで大量）<br>
+ATSTRMG/ATSPANG（温度関連スペクトル/角度）<br>
+ATPC1TG/ATPC3TG（温度の相関/コスペクトル）<br>
+TSKEWVTG/TFLATVTG（温度の歪度/尖度）<br>
+AT1TRIG/AT1QUADG/AQAVT1G, AT2TRIG/AT2QUADG/AQAVT2G, ANQAVTG（四象限解析/QA-PDF 関連）<br>
+
+## fort.14
+出力元：ch060owv2.f 内の SUBROUTINE OUTPUT(CODE) <br>
+形式：整形テキスト　<br>
+構成（ヘッダ→表のセクションが多数並ぶ）<br>
+見出し文字列 CMTD(...), CPRM(...): 条件や凡例（例: CPRM(30)="#CALC.NUM. ...", CPRM(5)="#J R DR RR DRR"）
+グリッド・物理量の一覧:<br>
+IG,JG,KG,DT,RE,TI, XL,ZL,NDRAW,NFIN, ALP,R1,R2,DX,DZ<br>
+壁摩擦速度 UTAU（AUTUB, AUTUT, AUTUB2, AUTUT2）<br>
+格子情報 J, R(J), DR(J), RR(J), DRR(J)（CPRM(5)セクション）<br>
+y方向プロファイル表（各セクション毎に見出し→J=1..JGで1行ずつ）<br>
+例: CPRM(6)で YY(J), AAPG(J), AAWG(J), AAUG(J)（平均速度系）<br>
+CPRM(7): YY(J), APRMSG(J), AWRMSG(J), AURMSG(J)（RMS）<br>
+CPRM(9): YY(J), AU11G, AU22G, AU33G（レイノルズ応力）<br>
+CPRM(12)〜(21): 乱流運動エネルギーや応力の収支項（APKG/ATAKG/APIKG/APDKG, AD.., AE.., RES.. などの組み合わせ）<br>
+
+## fort.17
+出力元：INCFILE/TFIELD_CHOMP 内のテキスト出力ブロック（TAVE_OUTPUTに相当）<br>
+形式：整形テキスト<br>
+構成（ヘッダ+表が順に出力）<br>
+TL(1:3), CM(1:2): タイトル/共通メタ情報<br>
+計算情報: NCALC, CALTIM, NSTCS, STCSTM（I10,E18.10,I10,E18.10）<br>
+セクション CM1(1): for J=1..JG<br>
+YPLS2G(J), TAT1G(J), TAT2G(J)（温度の平均？2成分系）<br>
+セクション CM1(2):<br>
+YPLS2G(J), TRMS1G(J), TRMS2G(J)（温度RMS）<br>
+セクション CM1(3),(4):<br>
+YPLS1G(J), ATOTAL1G/ATHFV1G, ATOTAL2G/ATHFV2G（トータル/熱伝達フラックス）<br>
+セクション CM1(5):<br>
+YPLS2G(J), AKT1G(J), AKT2G(J)（熱拡散係数系）<br>
+さらに続き（CM1(6)以降も同様に y+ vs 物理量の表が続く）<br>
+
+## fort.18
+出力元：INCFILE/TFIELD_CHOMP 内のテキスト出力ブロック（TBUD_OUTPUTに相当）<br>
+形式：整形テキスト<br>
+構成（例）<br>
+TL/CMヘッダ、NCALC/CALTIM/NSTCS/STCSTM<br>
+CM2(1), CM2(2) 見出しのもとで:<br>
+for J=1..JG: YPLS2G(J), PRO1TG(J), DIS1TG(J), TDF1TG(J)<br>
+この後も CM2(3) 以降で、T1/T2の Production, Dissipation, Turbulent/Molecular diffusion, Residual, Pressure–Temperature gradient correlation などの収支項が続く構成<br>
+
+## fort.19
+出力元：INCFILE/TFIELD_CHOMP 内のテキスト出力ブロック（TVEL_BACKに相当）<br>
+形式：整形テキスト<br>
+構成（4セクションを確認）<br>
+CM1(1): for J=1..JG<br>
+YPLS2G(J), TAGU(J), UGRMS(J)<br>
+CM1(2):<br>
+YPLS2G(J), TAGV(J), VGRMS(J)<br>
+CM1(3):<br>
+YPLS2G(J), TAGW(J), WGRMS(J)<br>
+CM1(4):<br>
+YPLS2G(J), TAGP(J), PGRMS(J)<br>
+
+
+
