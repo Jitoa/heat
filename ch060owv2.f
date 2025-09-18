@@ -241,8 +241,8 @@ C      CALL TAVEIN
       IF (IERR.NE.0) GOTO 1                                             
 C------------------------------------ SET PARAMETER                     
       RE=120.0D0                                                       
-      XL=6.4D0                                                         
-      ZL=3.2D0                                                         
+      XL=6.4D0*0.5D0                                                         
+      ZL=3.2D0*0.5D0                                                         
       DX=XL/DBLE(IG)                                                   
       DZ=ZL/DBLE(KG)                                                   
 C                                                                       
@@ -255,7 +255,7 @@ C
       PR2=0.71D0                                                        
 C                                                                       
       CODE='CH060_WIDE_4TH_1024X96X512'                                 
-      CALL ETIME(WT2)                                                   
+      CALL ETIME(WT2)                  
 C------------------------------------                                   
       CALL UBC(DIV)                                                     
       CALL FS0                                                          
