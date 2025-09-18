@@ -366,7 +366,7 @@ C
           CALL CNTDMAT                                                  
          IF (MOD(NN,500).EQ.0) THEN                                     
          NSTCS=NSTCS+1                                                  
-C          CALL STCS(PPR1,PPR2,NN)                                       
+          CALL STCS(PPR1,PPR2,NN)                                       
 C          CALL BUDGEK1(PPR1,COE1BD)                                    
 C          CALL BUDGEK2(PPR2,COE2BD)                                    
 C          CALL TPOWSPE                                                 
