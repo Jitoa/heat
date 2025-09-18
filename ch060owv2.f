@@ -231,25 +231,26 @@ C
       IERR=0                                                            
 C                                                                       
 C------------------------------------ SEEDIN INPUT                      
-C      CALL SEEDIN(IERR)                                                 
+C      CALL SEEDIN(IERR)                                               
+      CALL SEEDIN_NEW(IERR)   ! <- seed_ave 方式に切替えるときはこちらを有効化 
 C      CALL TSEEDIN                                                      
 C      CALL AVEIN                                                       
 C      CALL TAVEIN                                                      
-      CALL ZERO                                                        
+C      CALL ZERO                                                        
       CALL CLR                                                         
       NFIN=0                                                           
       IF (IERR.NE.0) GOTO 1                                             
 C------------------------------------ SET PARAMETER                     
-      RE=120.0D0                                                       
-      XL=6.4D0*0.5D0                                                         
-      ZL=3.2D0*0.5D0                                                         
-      DX=XL/DBLE(IG)                                                   
-      DZ=ZL/DBLE(KG)                                                   
+C      RE=120.0D0                                                       
+C      XL=6.4D0*0.5D0                                                         
+C      ZL=3.2D0*0.5D0                                                         
+C      DX=XL/DBLE(IG)                                                   
+C      DZ=ZL/DBLE(KG)                                                   
 C                                                                       
-      DT=0.00020D0                                                     
-      NDRAW=0                                                           
-         NC=10000                                                      
-         NG=1000                                                       
+C      DT=0.00020D0                                                     
+C      NDRAW=0                                                           
+         NC=100000                                                      
+         NG=10                                                       
 C                                                                       
       PR1=0.71D0                                                        
       PR2=0.71D0                                                        
@@ -277,7 +278,7 @@ C
         CALL CNTDMA                                                     
         CALL FS2                                                        
         CALL UBC(DIV)                                                   
-        IF (MOD(NN,10).EQ.0) THEN                                       
+        IF (MOD(NN,100).EQ.0) THEN                                       
          CALL TMSRSU                                                    
          CALL TMSRST                                                    
         ENDIF                                                           
@@ -322,28 +323,28 @@ C
           CALL CNTDMAT                                                  
          IF (MOD(NN,500).EQ.0) THEN                                     
          NSTCS=NSTCS+1                                                  
-          CALL STCS(PPR1,PPR2,NN)                                       
-          CALL BUDGEK1(PPR1,COE1BD)                                    
-          CALL BUDGEK2(PPR2,COE2BD)                                    
-          CALL TPOWSPE                                                 
-          CALL TCORREL                                                 
+C          CALL STCS(PPR1,PPR2,NN)                                       
+C          CALL BUDGEK1(PPR1,COE1BD)                                    
+C          CALL BUDGEK2(PPR2,COE2BD)                                    
+C          CALL TPOWSPE                                                 
+C          CALL TCORREL                                                 
          ENDIF                                                          
 C                                                                       
           CALL FS1                                                      
           CALL CNTDMA                                                   
           CALL FS2                                                      
           CALL UBC(DIV)                                                 
-          IF (MOD(NN,10).EQ.0) THEN                                     
+          IF (MOD(NN,100).EQ.0) THEN                                     
            CALL TMSRSU                                                  
            CALL TMSRST                                                  
           ENDIF                                                         
          IF (MOD(NN,500).EQ.0) THEN                                     
          NAVE=NAVE+1                                                    
           CALL AVE(NN)                                                  
-          CALL BUDGET                                                  
-          CALL POWSPE                                                  
-          CALL CORREL                                                  
-          CALL VRTCTY                                                  
+C          CALL BUDGET                                                  
+C          CALL POWSPE                                                  
+C          CALL CORREL                                                  
+C          CALL VRTCTY                                                  
          ENDIF                                                          
    20   CONTINUE                                                        
         WRITE(6,1000)                                                   
@@ -365,28 +366,28 @@ C
           CALL CNTDMAT                                                  
          IF (MOD(NN,500).EQ.0) THEN                                     
          NSTCS=NSTCS+1                                                  
-          CALL STCS(PPR1,PPR2,NN)                                       
-          CALL BUDGEK1(PPR1,COE1BD)                                    
-          CALL BUDGEK2(PPR2,COE2BD)                                    
-          CALL TPOWSPE                                                 
-          CALL TCORREL                                                 
+C          CALL STCS(PPR1,PPR2,NN)                                       
+C          CALL BUDGEK1(PPR1,COE1BD)                                    
+C          CALL BUDGEK2(PPR2,COE2BD)                                    
+C          CALL TPOWSPE                                                 
+C          CALL TCORREL                                                 
          ENDIF                                                          
 C                                                                       
           CALL FS1                                                      
           CALL CNTDMA                                                   
           CALL FS2                                                      
           CALL UBC(DIV)                                                 
-          IF (MOD(NN,10).EQ.0) THEN                                     
+          IF (MOD(NN,100).EQ.0) THEN                                     
            CALL TMSRSU                                                  
            CALL TMSRST                                                  
           ENDIF                                                         
          IF (MOD(NN,500).EQ.0) THEN                                     
          NAVE=NAVE+1                                                    
-          CALL AVE(NN)                                                  
-          CALL BUDGET                                                  
-          CALL POWSPE                                                  
-          CALL CORREL                                                  
-          CALL VRTCTY                                                  
+C          CALL AVE(NN)                                                  
+C          CALL BUDGET                                                  
+C          CALL POWSPE                                                  
+C          CALL CORREL                                                  
+C          CALL VRTCTY                                                  
          ENDIF                                                          
    22   CONTINUE                                                        
         WRITE(6,1000)                                                   
@@ -6070,6 +6071,128 @@ C
 C                                                                       
     1 CONTINUE                                                          
       RETURN                                                            
+      END                                                               
+C                                                                       
+C====================================================================   
+C     NEW SEED DATA READER FOR seed_ave FORMAT (PPF TEST V16)           
+C     Reads unified files:                                              
+C       seed_ave/num.dat  (header + mesh arrays R,DR,RR,DRR)            
+C       seed_ave/usd.dat  (u-component field)                           
+C       seed_ave/vsd.dat  (v-component field)                           
+C       seed_ave/wsd.dat  (w-component field)                           
+C     Populates COMMON /VELO/ UG(*,*,*,1:3).                            
+C     Ghost cells (-4,..) around domain left untouched except           
+C     interior [1:IG,1:JG,1:KG].                                        
+C     Performs dimension consistency check.                             
+C====================================================================   
+      SUBROUTINE SEEDIN_NEW(IERR)                                       
+      INCLUDE './INCFILE/INCINIT96'                                     
+      INCLUDE './INCFILE/INCDATA'                                       
+      INCLUDE './INCFILE/INCMESH'                                       
+      INTEGER IERR                                                      
+      CHARACTER*71 CMTD                                                 
+      COMMON /VELO/ UG(-4:IG+4,-2:JG+2,-4:KG+4,3)                       
+C     Local scratch arrays to read velocity components                  
+      REAL*8 U_SD(-4:IG+4,-2:JG+2,-4:KG+4)                              
+      REAL*8 V_SD(-4:IG+4,-2:JG+2,-4:KG+4)                              
+      REAL*8 W_SD(-4:IG+4,-2:JG+2,-4:KG+4)                              
+      INTEGER LKGD,JGD,LIGD                                             
+      REAL*8 DT_R,RE_R,TI_R,XL_R,ZL_R,DZ_R,DX_R,R1_R,R2_R,ALP_R         
+      INTEGER NDRAW_R,NFIN_R                                            
+      INTEGER NUM_R                                                     
+      REAL*8 TIME_R                                                     
+      INTEGER IU,IV,IW,INUM                                             
+      PARAMETER (INUM=20,IU=21,IV=22,IW=23)                             
+      IERR=0                                                            
+C---- Read header/mesh ------------------------------------------------- 
+      OPEN(INUM,FILE='seed_ave/num.dat',STATUS='OLD',FORM='UNFORMATTED',
+     &     ERR=900)                                                     
+      READ(INUM,ERR=901,END=901) NUM_R,TIME_R                           
+      READ(INUM,ERR=901,END=901) LKGD,JGD,LIGD,DT_R,RE_R,TI_R           
+      READ(INUM,ERR=901,END=901) XL_R,ZL_R,NDRAW_R,NFIN_R               
+      READ(INUM,ERR=901,END=901) DZ_R,DX_R,R1_R,R2_R,ALP_R              
+      READ(INUM,ERR=901,END=901) R,DR,RR,DRR                            
+      CLOSE(INUM)                                                       
+C---- Dimension check (allow mismatch triggers error) ----------------- 
+      IF ((LIGD.NE.LIG).OR.(JGD.NE.JG).OR.(LKGD.NE.LKG)) THEN           
+        IERR=1000                                                       
+        CMTD=' MESH DATA ERROR (seed_ave)'                              
+        WRITE(6,1001) CMTD,LIGD,LIG,JGD,JG,LKGD,LKG                     
+        RETURN                                                          
+      ENDIF                                                             
+C---- Assign global run parameters (optional: overwrite) -------------- 
+      NUM = NUM_R                                                       
+      TIME = TIME_R                                                     
+      DT = DT_R                                                         
+      RE = RE_R                                                         
+      TI = TI_R                                                         
+      XL = XL_R                                                         
+      ZL = ZL_R                                                         
+      NDRAW = NDRAW_R                                                   
+      NFIN  = NFIN_R                                                    
+      DZ = DZ_R                                                         
+      DX = DX_R                                                         
+      R1 = R1_R                                                         
+      R2 = R2_R                                                         
+      ALP = ALP_R                                                       
+C---- Read component fields ------------------------------------------- 
+      OPEN(IU,FILE='seed_ave/usd.dat',STATUS='OLD',FORM='UNFORMATTED',  
+     &     ERR=910)                                                     
+      READ(IU,ERR=911,END=911) U_SD                                     
+      CLOSE(IU)                                                         
+      OPEN(IV,FILE='seed_ave/vsd.dat',STATUS='OLD',FORM='UNFORMATTED',  
+     &     ERR=920)                                                     
+      READ(IV,ERR=921,END=921) V_SD                                     
+      CLOSE(IV)                                                         
+      OPEN(IW,FILE='seed_ave/wsd.dat',STATUS='OLD',FORM='UNFORMATTED',  
+     &     ERR=930)                                                     
+      READ(IW,ERR=931,END=931) W_SD                                     
+      CLOSE(IW)                                                         
+C---- Copy interior into UG ------------------------------------------- 
+      DO 30 J=1,JG                                                      
+      DO 30 K=1,KG                                                      
+      DO 30 I=1,IG                                                      
+        UG(I,J,K,1)=U_SD(I,J,K)                                        
+        UG(I,J,K,2)=V_SD(I,J,K)                                        
+        UG(I,J,K,3)=W_SD(I,J,K)                                        
+  30  CONTINUE                                                          
+      RETURN                                                            
+C---- Error handlers -------------------------------------------------- 
+ 900  CONTINUE                                                          
+      IERR=2000                                                         
+      WRITE(6,1002) 'OPEN num.dat failed'                               
+      RETURN                                                            
+ 901  CONTINUE                                                          
+      IERR=2001                                                         
+      WRITE(6,1002) 'READ num.dat failed'                               
+      RETURN                                                            
+ 910  CONTINUE                                                          
+      IERR=2010                                                         
+      WRITE(6,1002) 'OPEN usd.dat failed'                               
+      RETURN                                                            
+ 911  CONTINUE                                                          
+      IERR=2011                                                         
+      WRITE(6,1002) 'READ usd.dat failed'                               
+      RETURN                                                            
+ 920  CONTINUE                                                          
+      IERR=2020                                                         
+      WRITE(6,1002) 'OPEN vsd.dat failed'                               
+      RETURN                                                            
+ 921  CONTINUE                                                          
+      IERR=2021                                                         
+      WRITE(6,1002) 'READ vsd.dat failed'                               
+      RETURN                                                            
+ 930  CONTINUE                                                          
+      IERR=2030                                                         
+      WRITE(6,1002) 'OPEN wsd.dat failed'                               
+      RETURN                                                            
+ 931  CONTINUE                                                          
+      IERR=2031                                                         
+      WRITE(6,1002) 'READ wsd.dat failed'                               
+      RETURN                                                            
+ 1001 FORMAT(A20,' LIGD/LIG=',I4,'/',I4,'  JGD/JG=',I4,'/',I4,         
+     &              '  LKGD/LKG=',I4,'/',I4)                            
+ 1002 FORMAT(' ** SEEDIN_NEW: ',A)                                      
       END                                                               
 C                                                                       
 C====================================================================   
