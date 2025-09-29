@@ -1,7 +1,7 @@
 C====================================================================  
 C     TIME SERIES (VELOCITY FIELD)                                     
 C     PROGRAMED BY T.TSUKAHARA                                         
-      SUBROUTINE TMSRSU                                                
+      SUBROUTINE TMSRSU(NN)                                                
 C     2004.08.08                                                       
 C     REVISED ON 2005.03.01                                            
 C     REVISED ON 2005.09.07                                            
@@ -17,7 +17,9 @@ C
       DIMENSION UT(-4:IG+4,-2:JG+2,-4:KG+4,3)                          
 C                                                                      
       DIMENSION P(-3:IG+3,-2:JG+2,-3:KG+3)                             
-      DIMENSION AU(-1:JG+2),AV(-1:JG+2),AW(-1:JG+2),AP(-1:JG+2)        
+      DIMENSION AU(-1:JG+2),AV(-1:JG+2),AW(-1:JG+2),AP(-1:JG+2)
+      INTEGER NN        
+      CHARACTER*3 NUMM
 C                                                                      
 C----GLOBAL VARIABLES------------------------------------------        
 C                                                                      
@@ -231,6 +233,7 @@ C
       CLOSE(62)
 C--------------                                                        
 C                                                                      
+C========== ORIGINAL CODE (COMMENTED OUT) =============================
 c      IF(MOD(NN,100).EQ.0) THEN                                       
 cC                                                                     
 c      NNN=NN/100                                                      
@@ -284,14 +287,69 @@ c  950 CONTINUE
 c      CLOSE(95)                                                       
 cC                                                                     
 c      ENDIF                                                           
-C--------------                                                        
+C========== END ORIGINAL CODE ==========================================
+C
+C========== NEW CODE (ACTIVATED FOR VISUALIZATION) ====================
+      IF(MOD(NN,100).EQ.0) THEN                                       
+C                                                                     
+      NNN=NN/100                                                      
+      NONE=MOD(NNN,10)                                                
+      NTEN=MOD(NNN,100)-MOD(NNN,10)                                   
+      NHUN=MOD(NNN,1000)-MOD(NNN,100)                                 
+      NUMM=CHAR(48+NHUN/100)//CHAR(48+NTEN/10)//CHAR(48+NONE)         
+C                                                                     
+      OPEN(91, FILE='uxz_'//NUMM//'.dat'    
+     &, STATUS='UNKNOWN')                                             
+      DO 910 K=1,KG,2                                                 
+      DO 910 I=1,IG,2                                                 
+      WRITE(91,'(3E14.6)') UT(I,JA2,K,1), UT(I,JD2,K,1), UT(I,JE2,K,1)
+  910 CONTINUE                                                        
+      CLOSE(91)                                                       
+C                                                                     
+      OPEN(92, FILE='uxz_040_'//NUMM//'.dat'                                    
+     &, STATUS='UNKNOWN')                                             
+      DO 920 K=1,KG,2                                                 
+      DO 920 I=1,IG,2                                                 
+      WRITE(92,'(E14.6)') UT(I,JD2,K,1)                               
+  920 CONTINUE                                                        
+      CLOSE(92)                                                       
+C                                                                     
+      OPEN(93, FILE='uxz_080_'//NUMM//'.dat'                                    
+     &, STATUS='UNKNOWN')                                             
+      DO 930 K=1,KG,2                                                 
+      DO 930 I=1,IG,2                                                 
+      WRITE(93,'(E14.6)') UT(I,JE2,K,1)                               
+  930 CONTINUE                                                        
+      CLOSE(93)                                                       
+C                                                                     
+      OPEN(94, FILE='uzy_'//NUMM//'.dat'    
+     &, STATUS='UNKNOWN')                                             
+      DO 940 J=1,JG                                                   
+      DO 940 K=1,KG/2                                                 
+      WRITE(94,'(3E14.6)')                                            
+     & UT(IG/2,J,K,1), UT(IG/2,J,K,2), UT(IG/2,J,K,3)              
+  940 CONTINUE                                                        
+      CLOSE(94)                                                       
+C                                                                     
+      OPEN(95, FILE='uxy_'//NUMM//'.dat'    
+     &, STATUS='UNKNOWN')                                             
+      DO 950 J=1,JG                                                   
+      DO 950 I=1,IG/2                                                 
+      WRITE(95,'(2E14.6)')                                            
+     & UT(I,J,KG/2,1), UT(I,J,KG/2,2)               
+  950 CONTINUE                                                        
+      CLOSE(95)                                                       
+C                                                                     
+      ENDIF
+C========== END NEW CODE ===============================================
+C--------------
       RETURN                                                           
       END                                                              
 C                                                                      
 C====================================================================  
 C     TIME SERIES (TEMPERATURE FIELD)                                  
 C     PROGRAMED BY T.TSUKAHARA                                         
-      SUBROUTINE TMSRST                                                
+      SUBROUTINE TMSRST(NN)                                                
 C                                                                      
 C     2004.08.08                                                       
 C     REVISED ON 2005.03.01                                            
@@ -309,7 +367,9 @@ C
       DIMENSION T1(-3:IG+3,-2:JG+2,-3:KG+3)                            
       DIMENSION T2(-3:IG+3,-2:JG+2,-3:KG+3)                            
       DIMENSION EAT1(-2:JG+2)                                          
-      DIMENSION EAT2(-2:JG+2)                                          
+      DIMENSION EAT2(-2:JG+2)
+      INTEGER NN                                          
+      CHARACTER*3 NUMM
 C                                                                      
 C---  GLOBAL  VARIABLES  ----------------------------------------------
 C                                                                      
@@ -454,6 +514,7 @@ C
       CLOSE(78)
 C--------------                                                        
 C                                                                      
+C========== ORIGINAL CODE (COMMENTED OUT) =============================
 c      IF(MOD(NN,100).EQ.0) THEN                                       
 cC                                                                     
 c      NNN=NN/100                                                      
@@ -470,7 +531,7 @@ c      WRITE(96,'(6E14.6)') UTG(I,JA,K,1), UTG(I,JD,K,1), UTG(I,JE,K,1)
 c     &,                    UTG(I,JA,K,2), UTG(I,JD,K,2), UTG(I,JE,K,2)
 c  960 CONTINUE                                                        
 c      CLOSE(96)                                                       
-C                                                                      
+cC                                                                      
 c      OPEN(97, FILE='/work/p73182a/tsuka/ch080/t2xz_'//NUMM//'.dat'   
 c     &, STATUS='UNKNOWN')                                             
 c      DO 970 K=1,KG,2                                                 
@@ -478,12 +539,12 @@ c      DO 970 I=1,IG,2
 c      WRITE(97,'(3E14.6)') UTG(I,JA,K,2), UTG(I,JD,K,2), UTG(I,JE,K,2)
 c  970 CONTINUE                                                        
 c      CLOSE(97)                                                       
-C                                                                      
+cC                                                                      
 c      OPEN(98, FILE='/work/p73182a/tsuka/ch080/t12zy_'//NUMM//'.dat'  
 c     &, STATUS='UNKNOWN')                                             
 c      DO 980 J=1,JG                                                   
 c      DO 980 K=1,KG/2                                                 
-c      WRITE(98,'(3E14.6)')                                            
+c      WRITE(98,'(2E14.6)')                                            
 c     & UTG(IG/2,J,K,1), UTG(IG/2,J,K,2)                               
 c  980 CONTINUE                                                        
 c      CLOSE(98)                                                       
@@ -492,12 +553,244 @@ c      OPEN(99, FILE='/work/p73182a/tsuka/ch080/t12xy_'//NUMM//'.dat'
 c     &, STATUS='UNKNOWN')                                             
 c      DO 990 J=1,JG                                                   
 c      DO 990 I=1,IG/2                                                 
-c      WRITE(99,'(3E14.6)')                                            
-c     & UG(I,J,KG/2,1), UTG(I,J,KG/2,2)                                
+c      WRITE(99,'(2E14.6)')                                            
+c     & UTG(I,J,KG/2,1), UTG(I,J,KG/2,2)                                
 c  990 CONTINUE                                                        
 c      CLOSE(99)                                                       
 cC                                                                     
 c      ENDIF                                                           
+C========== END ORIGINAL CODE ==========================================
+C
+C========== NEW CODE (ACTIVATED FOR VISUALIZATION) ====================
+      IF(MOD(NN,100).EQ.0) THEN                                       
+C                                                                     
+      NNN=NN/100                                                      
+      NONE=MOD(NNN,10)                                                
+      NTEN=MOD(NNN,100)-MOD(NNN,10)                                   
+      NHUN=MOD(NNN,1000)-MOD(NNN,100)                                 
+      NUMM=CHAR(48+NHUN/100)//CHAR(48+NTEN/10)//CHAR(48+NONE)         
+C                                                                     
+      OPEN(96, FILE='t1xz_'//NUMM//'.dat'   
+     &, STATUS='UNKNOWN')                                             
+      DO 960 K=1,KG,2                                                 
+      DO 960 I=1,IG,2                                                 
+      WRITE(96,'(6E14.6)') UT(I,JA2,K,1), UT(I,JD2,K,1), UT(I,JE2,K,1)
+     &,                    UT(I,JA2,K,2), UT(I,JD2,K,2), UT(I,JE2,K,2)
+  960 CONTINUE                                                        
+      CLOSE(96)                                                       
+C                                                                      
+      OPEN(97, FILE='t2xz_'//NUMM//'.dat'   
+     &, STATUS='UNKNOWN')                                             
+      DO 970 K=1,KG,2                                                 
+      DO 970 I=1,IG,2                                                 
+      WRITE(97,'(3E14.6)') UT(I,JA2,K,2), UT(I,JD2,K,2), UT(I,JE2,K,2)
+  970 CONTINUE                                                        
+      CLOSE(97)                                                       
+C                                                                      
+      OPEN(98, FILE='t12zy_'//NUMM//'.dat'  
+     &, STATUS='UNKNOWN')                                             
+      DO 980 J=1,JG                                                   
+      DO 980 K=1,KG/2                                                 
+      WRITE(98,'(2E14.6)')                                            
+     & UT(IG/2,J,K,1), UT(IG/2,J,K,2)                               
+  980 CONTINUE                                                        
+      CLOSE(98)                                                       
+C                                                                     
+      OPEN(99, FILE='t12xy_'//NUMM//'.dat'  
+     &, STATUS='UNKNOWN')                                             
+      DO 990 J=1,JG                                                   
+      DO 990 I=1,IG/2                                                 
+      WRITE(99,'(2E14.6)')                                            
+     & UT(I,J,KG/2,1), UT(I,J,KG/2,2)                                
+  990 CONTINUE                                                        
+      CLOSE(99)                                                       
+C                                                                     
+      ENDIF
+C========== END NEW CODE ===============================================
+C--------------                                                        
+C     BINARY OUTPUT ADDITION (NOT IN ORIGINAL CODE)
+C     This binary output functionality was added to enable 2D visualization
+C     The original code only had text-based output through blocks 91-99
+C     Call binary output for 2D visualization (every 1000 steps)
+      IF(MOD(NN,1000).EQ.0) THEN
+        CALL BINARYOUT(NN)
+      ENDIF
 C--------------                                                        
       RETURN                                                           
       END                                                              
+C
+C====================================================================  
+C     BINARY OUTPUT FOR 2D VISUALIZATION (inspired by ppf-main)
+C     PROGRAMED BY COPILOT (based on ppf-main INSTOUT)
+C
+C     THIS SUBROUTINE WAS ADDED TO PROVIDE BINARY OUTPUT CAPABILITY
+C     SIMILAR TO THE ppf-main INSTOUT SUBROUTINE. THE ORIGINAL HEAT
+C     CODE DID NOT HAVE BINARY OUTPUT - IT ONLY PROVIDED TEXT OUTPUT
+C     THROUGH THE PREVIOUSLY COMMENTED OUTPUT BLOCKS (91-99).
+C     
+C     THIS SUBROUTINE CREATES BINARY FILES FOR:
+C     - VELOCITY FIELD (U, V, W) AND FLUCTUATIONS (U', V', W')
+C     - TEMPERATURE FIELD (T1, T2) AND FLUCTUATIONS (T1', T2')
+C     - X-Z PLANE DATA AT CHANNEL CENTER FOR 2D VISUALIZATION
+C
+      SUBROUTINE BINARYOUT(NN)
+C====================================================================  
+C                                                                      
+      INCLUDE './INCFILE/INCINIT96'                                      
+      INCLUDE './INCFILE/INCDATA'                                        
+      INCLUDE './INCFILE/INCMESH'                                        
+C                                                                      
+C----LOCAL VARIABLES-------------------------------------------        
+C                                                                      
+      DIMENSION U(-4:IG+4,-2:JG+2,-4:KG+4,3)                           
+      DIMENSION UT(-4:IG+4,-2:JG+2,-4:KG+4,3)                          
+      DIMENSION T1(-3:IG+3,-2:JG+2,-3:KG+3)                            
+      DIMENSION T2(-3:IG+3,-2:JG+2,-3:KG+3)                            
+      DIMENSION EAT1(-2:JG+2)                                          
+      DIMENSION EAT2(-2:JG+2)                                          
+      DIMENSION AU(-1:JG+2),AV(-1:JG+2),AW(-1:JG+2)        
+      DIMENSION XP(1:IG),RP(1:JG),ZP(1:KG)
+      DIMENSION UXZC(1:IG*KG),   VXZC(1:IG*KG),   WXZC(1:IG*KG)
+      DIMENSION UTXZC(1:IG*KG),  VTXZC(1:IG*KG),  WTXZC(1:IG*KG)
+      DIMENSION T1XZC(1:IG*KG),  T2XZC(1:IG*KG)
+      DIMENSION T1TXZC(1:IG*KG), T2TXZC(1:IG*KG)
+      CHARACTER*9 COU
+C                                                                      
+C----GLOBAL VARIABLES------------------------------------------        
+C                                                                      
+      COMMON /VELO/ UG(-4:IG+4,-2:JG+2,-4:KG+4,3)                      
+      COMMON /TEMP/ UTG(-4:IG+4,-2:JG+2,-4:KG+4,3)                     
+      COMMON /TEM1/ T1G(-3:IG+3,-2:JG+2,-3:KG+3)                       
+      COMMON /TEM2/ T2G(-3:IG+3,-2:JG+2,-3:KG+3)                       
+      COMMON /ETM1/ EAT1G(-2:JG+2)                                     
+      COMMON /ETM2/ EAT2G(-2:JG+2)                                     
+      COMMON /MEAN/ AUG(-1:JG+2),AVG(-1:JG+2)                          
+     &             ,AWG(-1:JG+2),APG(-1:JG+2)                          
+C                                                                      
+C----COMBINATION------------------------------------------------       
+C                                                                      
+      EQUIVALENCE (UG,U),(UTG,UT)                               
+      EQUIVALENCE (T1G,T1),(T2G,T2)                                    
+      EQUIVALENCE (EAT1G,EAT1),(EAT2G,EAT2)                            
+      EQUIVALENCE (AUG,AU),(AVG,AV),(AWG,AW)                  
+C                                                                      
+C=================================================================     
+C
+C     Create coordinate arrays
+      DO 7 I = 1,IG
+            XP(I) = DX*DBLE(I)
+   7  CONTINUE
+      DO 8 K = 1,KG
+            ZP(K) = DZ*DBLE(K)
+   8  CONTINUE
+      DO 9 J = 1,JG
+            RP(J) = R(J)
+   9  CONTINUE
+C
+C     Calculate fluctuations for velocity
+      DOOP=1.0D0/DBLE(IG*KG)
+      DO 10 J=1,JG
+        AU(J)=0.0D0
+        AV(J)=0.0D0
+        AW(J)=0.0D0
+   10 CONTINUE
+C
+      DO 20 J=1,JG
+      DO 20 K=1,KG
+      DO 20 I=1,IG
+        AU(J)=U(I,J,K,1)+AU(J)
+        AV(J)=U(I,J,K,2)+AV(J)
+        AW(J)=U(I,J,K,3)+AW(J)
+   20 CONTINUE
+C
+      DO 21 J=1,JG
+        AU(J)=AU(J)*DOOP
+        AV(J)=AV(J)*DOOP
+        AW(J)=AW(J)*DOOP
+   21 CONTINUE
+C
+C     Calculate fluctuations for temperature
+      DOOP=1.0D0/DBLE(IG*KG)
+      DO 30 J=-2,JG+2
+       EAT1(J)=0.0D0
+       EAT2(J)=0.0D0
+   30 CONTINUE
+C
+      DO 40 J=-2,JG+2
+      DO 40 K=1,KG
+      DO 40 I=1,IG
+       EAT1(J)=EAT1(J)+T1(I,J,K)
+       EAT2(J)=EAT2(J)+T2(I,J,K)
+   40 CONTINUE
+C
+      DO 50 J=-2,JG+2
+       EAT1(J)=EAT1(J)*DOOP
+       EAT2(J)=EAT2(J)*DOOP
+   50 CONTINUE
+C
+C     CHANGE FOR OUTPUT DATA (X-Z PLANE, CHANNEL CENTER)
+      DO 212 K = 1, KG
+      DO 212 I = 1, IG
+            IK = I + IG*(K-1)
+            UXZC(IK) = U(I,JG/2,K,1)
+            VXZC(IK) = U(I,JG/2,K,2)
+            WXZC(IK) = U(I,JG/2,K,3)
+            T1XZC(IK) = T1(I,JG/2,K)
+            T2XZC(IK) = T2(I,JG/2,K)
+C
+            UTXZC(IK) = U(I,JG/2,K,1)-AU(JG/2)
+            VTXZC(IK) = U(I,JG/2,K,2)-AV(JG/2)
+            WTXZC(IK) = U(I,JG/2,K,3)-AW(JG/2)
+            T1TXZC(IK) = T1(I,JG/2,K)-EAT1(JG/2)
+            T2TXZC(IK) = T2(I,JG/2,K)-EAT2(JG/2)
+  212 CONTINUE
+C
+C     Generate filename with step number
+      IF(NN<10) THEN
+       WRITE(COU,'("00000000",I1)') NN
+      ELSE IF(NN<100) THEN
+       WRITE(COU,'("0000000",I2)') NN
+      ELSE IF(NN<1000) THEN
+       WRITE(COU,'("000000",I3)') NN
+      ELSE IF(NN<10000) THEN
+       WRITE(COU,'("00000",I4)') NN
+      ELSE IF(NN<100000) THEN
+       WRITE(COU,'("0000",I5)') NN
+      ELSE IF(NN<1000000) THEN
+       WRITE(COU,'("000",I6)') NN
+      ELSE IF(NN<10000000) THEN
+       WRITE(COU,'("00",I7)') NN
+      ELSE IF(NN<100000000) THEN
+       WRITE(COU,'("0",I8)') NN
+      ELSE IF(NN<1000000000) THEN
+       WRITE(COU,'(I9)') NN
+      ENDIF
+C
+C------------------XZ PLANE (CHANNEL CENTER) - VELOCITY
+C
+      ! OUTPUT BINARY DATA (SINGLE PRECISION)
+      ! 1: X,  2: Z,
+      ! 3: U,  4: V,  5: W,
+      ! 6: U', 7: V', 8: W'
+      OPEN(300, FILE='xzc_vel_'//COU//'.dat', FORM='UNFORMATTED'
+     &        , STATUS='REPLACE', ACCESS='STREAM')
+           WRITE(300) REAL(XP),    REAL(ZP)
+     &              , REAL(UXZC),  REAL(VXZC),  REAL(WXZC)
+     &              , REAL(UTXZC), REAL(VTXZC), REAL(WTXZC)
+      CLOSE(300)
+C
+C------------------XZ PLANE (CHANNEL CENTER) - TEMPERATURE
+C
+      ! OUTPUT BINARY DATA (SINGLE PRECISION)
+      ! 1: X,   2: Z,
+      ! 3: T1,  4: T2,
+      ! 5: T1', 6: T2'
+      OPEN(301, FILE='xzc_temp_'//COU//'.dat', FORM='UNFORMATTED'
+     &        , STATUS='REPLACE', ACCESS='STREAM')
+           WRITE(301) REAL(XP),     REAL(ZP)
+     &              , REAL(T1XZC),  REAL(T2XZC)
+     &              , REAL(T1TXZC), REAL(T2TXZC)
+      CLOSE(301)
+C
+      RETURN                                                           
+      END

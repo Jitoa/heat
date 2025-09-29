@@ -249,7 +249,7 @@ C      DZ=ZL/DBLE(KG)
 C                                                                       
 C      DT=0.00020D0                                                     
 C      NDRAW=0                                                           
-         NC=100000                                                      
+         NC=1000000                                                      
          NG=10                                                       
 C                                                                       
       PR1=0.71D0                                                        
@@ -279,8 +279,8 @@ C
         CALL FS2                                                        
         CALL UBC(DIV)                                                   
         IF (MOD(NN,100).EQ.0) THEN                                       
-         CALL TMSRSU                                                    
-         CALL TMSRST                                                    
+         CALL TMSRSU(NN)                                                    
+         CALL TMSRST(NN)                                                    
         ENDIF                                                           
         WRITE(6,2000)                                                   
         WRITE(6,1000)                                                   
@@ -335,8 +335,8 @@ C
           CALL FS2                                                      
           CALL UBC(DIV)                                                 
           IF (MOD(NN,100).EQ.0) THEN                                     
-           CALL TMSRSU                                                  
-           CALL TMSRST                                                  
+           CALL TMSRSU(NN)                                                  
+           CALL TMSRST(NN)                                                  
           ENDIF                                                         
          IF (MOD(NN,500).EQ.0) THEN                                     
          NAVE=NAVE+1                                                    
@@ -378,12 +378,12 @@ C
           CALL FS2                                                      
           CALL UBC(DIV)                                                 
           IF (MOD(NN,100).EQ.0) THEN                                     
-           CALL TMSRSU                                                  
-           CALL TMSRST                                                  
+           CALL TMSRSU(NN)                                                  
+           CALL TMSRST(NN)                                                  
           ENDIF                                                         
          IF (MOD(NN,500).EQ.0) THEN                                     
          NAVE=NAVE+1                                                    
-C          CALL AVE(NN)                                                  
+           CALL AVE(NN)                                                  
 C          CALL BUDGET                                                  
 C          CALL POWSPE                                                  
 C          CALL CORREL                                                  
